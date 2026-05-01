@@ -186,24 +186,26 @@ function Header({ view, setView, role }){
   const nav = role==='STAFF' ? staffNav : role==='ADMIN' ? adminNav : customerNav;
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
-      <Section className="flex items-center justify-between py-4">
-        <button onClick={()=>setView('home')} className="flex items-center gap-3">
-          <img src="assets/Logo.png" alt="Feminity" className="w-9 h-9 rounded-full object-cover" />
-          <div className="leading-tight text-left">
-            <div className="font-display text-xl text-ink-900">Feminity</div>
+      <Section className="py-4">
+        <button onClick={()=>setView('home')} className="flex flex-col items-center gap-2 mx-auto">
+          <img src="assets/Logo.png" alt="Feminity" className="w-16 h-16 rounded-full object-cover" />
+          <div className="leading-tight text-center">
+            <div className="font-display text-2xl text-ink-900">Feminity</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-ink-600">Oberkassel</div>
           </div>
         </button>
-        <nav className="hidden md:flex items-center gap-1">
-          {nav.map(n=>(
-            <button key={n.k} onClick={()=>setView(n.k)}
-              className={`px-3 py-2 rounded-full text-sm transition-colors ${view===n.k?'bg-ink-900 text-champagne-50':'text-ink-700 hover:bg-champagne-100'}`}>
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2">
-          {role==='CUSTOMER' && <Button onClick={()=>setView('services')} size="sm">Termin buchen</Button>}
+        <div className="flex items-center justify-between mt-4">
+          <nav className="hidden md:flex items-center gap-1">
+            {nav.map(n=>(
+              <button key={n.k} onClick={()=>setView(n.k)}
+                className={`px-3 py-2 rounded-full text-sm transition-colors ${view===n.k?'bg-ink-900 text-champagne-50':'text-ink-700 hover:bg-champagne-100'}`}>
+                {n.label}
+              </button>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2 ml-auto">
+            {role==='CUSTOMER' && <Button onClick={()=>setView('services')} size="sm">Termin buchen</Button>}
+          </div>
         </div>
       </Section>
     </header>
