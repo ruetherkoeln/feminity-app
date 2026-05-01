@@ -188,7 +188,7 @@ function Header({ view, setView, role }){
     <header className="sticky top-0 z-40 backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
       <Section className="flex items-center justify-between py-4">
         <button onClick={()=>setView('home')} className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-ink-900 grid place-items-center text-champagne-50 font-display text-lg">F</div>
+          <img src="assets/Logo.png" alt="Feminity" className="w-9 h-9 rounded-full object-cover" />
           <div className="leading-tight text-left">
             <div className="font-display text-xl text-ink-900">Feminity</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-ink-600">Oberkassel</div>
@@ -295,10 +295,12 @@ function Home({ setView }){
             </div>
           </div>
           <div className="relative">
-            <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400 grain"></div>
+            <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <img src="assets/Jule_Cover.jpg" alt="Jule – Master Beautician" className="w-full h-full object-cover" />
+            </div>
             <Card className="absolute -bottom-6 -left-6 p-5 max-w-xs shadow-xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-rose-300"></div>
+                <img src="assets/Jule.jpg" alt="Jule" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <div className="font-medium text-sm">Jule · Master Beautician</div>
                   <div className="text-xs text-ink-600">Heute verfügbar · 14:00 frei</div>
