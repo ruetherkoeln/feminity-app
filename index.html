@@ -187,12 +187,8 @@ function Header({ view, setView, role }){
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
       <Section className="py-4">
-        <button onClick={()=>setView('home')} className="flex flex-col items-center gap-2 mx-auto">
-          <img src="assets/Logo.png" alt="Feminity" className="w-16 h-16 rounded-full object-cover" />
-          <div className="leading-tight text-center">
-            <div className="font-display text-2xl text-ink-900">Feminity</div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-ink-600">Oberkassel</div>
-          </div>
+        <button onClick={()=>setView('home')} className="flex justify-center mx-auto">
+          <img src="assets/Logo.png" alt="Feminity Oberkassel" className="h-20 w-auto object-contain" />
         </button>
         <div className="flex items-center justify-between mt-4">
           <nav className="hidden md:flex items-center gap-1">
