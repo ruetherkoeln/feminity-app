@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Feminity Oberkassel – App-Prototyp</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          serif: ['"Cormorant Garamond"', 'serif'],
+          sans: ['Inter', 'sans-serif'],
+        },
+        colors: {
+          champagne: { 50:'#fbf8f3', 100:'#f5ede0', 200:'#ead7bf', 300:'#dcbb95', 400:'#cb9a6a', 500:'#b87f4f', 600:'#9c6741', 700:'#7e5036', 800:'#65412e', 900:'#4d3325' },
+          rose:      { 50:'#fdf6f4', 100:'#faeae6', 200:'#f3d2c9', 300:'#e6a99a', 400:'#d6826d', 500:'#c25f49', 600:'#a64833', 700:'#86392a', 800:'#6c2f25', 900:'#552721' },
+          ink:       { 900:'#1a1410', 800:'#2b231d', 700:'#3d322a', 600:'#574a3f' },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #fbf8f3; color: #2b231d; }
+  .font-display { font-family: 'Cormorant Garamond', serif; letter-spacing: -0.01em; }
+  .grain { background-image: radial-gradient(circle at 20% 10%, rgba(203,154,106,.08), transparent 40%), radial-gradient(circle at 80% 80%, rgba(214,130,109,.06), transparent 50%); }
+  .scroll-hidden::-webkit-scrollbar { display: none; }
+  .scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform:translateY(0);} }
+  .anim-fade { animation: fadeUp .4s ease-out both; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo, useEffect, useRef } = React;
+
+/* ============================================================
+   SEED DATA
+   ============================================================ */
+const SERVICES = [
+  { id:'svc-cut-classic', cat:'Hair · Cut & Styling', name:'Classic Cut', desc:'Schnitt inklusive Wäsche, Pflege und Föhnen.', duration:60, price:8500, fromPrice:true, staff:['nicky'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-balayage', cat:'Hair · Balayage', name:'Signature Balayage', desc:'Handgemalte Highlights für einen sonnenverwöhnten, natürlichen Look.', duration:240, price:32000, fromPrice:true, staff:['nicky'], signature:true, requiresForm:true, formKey:'color_consent', area:'HAIR' },
+  { id:'svc-curl', cat:'Hair · Curl Couture', name:'Curl Couture Treatment', desc:'Curly Cut nach moderner Lockenmethode inklusive Pflege.', duration:120, price:14500, fromPrice:true, staff:['nicky'], signature:true, requiresForm:false, area:'HAIR' },
+  { id:'svc-color', cat:'Hair · Coloration', name:'Coloration Premium', desc:'Wurzeltonung oder vollständige Coloration inkl. Pflegekur.', duration:120, price:11500, fromPrice:true, staff:['nicky'], signature:false, requiresForm:true, formKey:'color_consent', area:'HAIR' },
+  { id:'svc-makeup', cat:'Beauty · Make-up', name:'Occasion Make-up', desc:'Premium-Make-up für besondere Anlässe.', duration:75, price:12000, fromPrice:false, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-pmu', cat:'Beauty · Permanent Make-up', name:'PMU Augenbrauen', desc:'Augenbrauen-Pigmentierung in Microblading- oder Powder-Technik.', duration:180, price:49000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'pmu_consent', online:false, area:'BEAUTY' },
+  { id:'svc-greenpeel', cat:'Beauty · Green Peel', name:'Green Peel Classic', desc:'Pflanzliche Tiefenpeelingbehandlung der Schrammek-Methode.', duration:90, price:21000, fromPrice:false, staff:['jule'], signature:false, requiresForm:true, formKey:'greenpeel_consent', online:false, area:'BEAUTY' },
+  { id:'svc-nad', cat:'Beauty · Beauty Drips', name:'NAD+ Beauty Drip', desc:'Infusionstherapie zur zellulären Regeneration.', duration:120, price:39000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'iv_consent', online:false, area:'BEAUTY' },
+  { id:'svc-skin', cat:'Beauty · Skin', name:'Signature Skin Treatment', desc:'Individuelle Hautbehandlung mit Tiefenreinigung und Pflege.', duration:75, price:16500, fromPrice:false, staff:['jule'], signature:true, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-consult', cat:'Beratung', name:'Beauty-Beratung', desc:'Individuelle 30-Minuten-Beratung mit Hautanalyse.', duration:30, price:4500, fromPrice:false, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+];
+
+const STAFF = [
+  { id:'jule', name:'Jule', role:'Master Beautician · MUA · Health Enthusiast', lead:'Beauty', specs:['Beauty','Skin','PMU','Make-up','Treatments'], statement:'Beauty ist für mich eine Form von Selfcare. Ich begleite meine Kundinnen ganzheitlich.', languages:['Deutsch','English'], years:12 },
+  { id:'nicky', name:'Nicky Rouge', role:'Master Hair Stylist', lead:'Hair', specs:['Balayage','Color Expertise','English Cut','Curl Couture','Bridal Hair'], statement:'Haar erzählt eine Geschichte. Meine Mission ist es, jeden Look individuell zu gestalten.', languages:['Deutsch','English'], years:15 },
+];
+
+const TODAY = new Date(2026, 3, 28);
+const MOCK_BOOKINGS = [
+  { id:'b1', staff:'jule', start:'09:00', end:'10:30', service:'PMU Augenbrauen Touch-up', customer:'Anna M.', status:'CONFIRMED', source:'APP', area:'BEAUTY' },
+  { id:'b2', staff:'jule', start:'11:00', end:'12:15', service:'Occasion Make-up', customer:'Sophia R.', status:'CONFIRMED', source:'TREATWELL', area:'BEAUTY' },
+  { id:'b3', staff:'jule', start:'14:00', end:'15:30', service:'Green Peel Classic', customer:'Lara K.', status:'REQUESTED', source:'APP', area:'BEAUTY' },
+  { id:'b4', staff:'nicky', start:'09:30', end:'13:30', service:'Signature Balayage', customer:'Marie F.', status:'CHECKED_IN', source:'APP', area:'HAIR' },
+  { id:'b5', staff:'nicky', start:'14:00', end:'15:00', service:'Classic Cut', customer:'Julia W.', status:'CONFIRMED', source:'TREATWELL', area:'HAIR' },
+  { id:'b6', staff:'nicky', start:'15:30', end:'17:30', service:'Curl Couture', customer:'Helena B.', status:'CONFIRMED', source:'APP', area:'HAIR' },
+];
+
+const CUSTOMER = {
+  name:'Clara Berger',
+  email:'clara@example.com',
+  birthday:'15.06.1991',
+  loyaltyPoints:340,
+  tier:'SILVER',
+  upcoming:[ { id:'u1', date:'04.05.2026', time:'14:00', service:'Signature Balayage', staff:'Nicky Rouge', status:'CONFIRMED', formStatus:'COMPLETE' } ],
+  history:[
+    { date:'12.03.2026', service:'Classic Cut', staff:'Nicky Rouge', price:'85,00 €' },
+    { date:'18.01.2026', service:'PMU Augenbrauen', staff:'Jule', price:'490,00 €' },
+    { date:'04.11.2025', service:'Occasion Make-up', staff:'Jule', price:'120,00 €' },
+  ],
+  passport:[
+    { date:'18.01.2026', title:'PMU Augenbrauen', notes:'Powder-Technik, mittelbraun, 2-Schicht-Aufbau', followUp:'Touch-up empfohlen 04.05.2026' },
+    { date:'04.11.2025', title:'Occasion Make-up', notes:'Soft-Glam, warme Untertöne, MAC Studio Fix NW20', followUp:null },
+  ]
+};
+
+const fmt = c => (c/100).toLocaleString('de-DE', { style:'currency', currency:'EUR' });
+const minToHrs = m => m>=60 ? `${Math.floor(m/60)} h${m%60?` ${m%60} min`:''}` : `${m} min`;
+
+/* ============================================================
+   UI PRIMITIVES
+   ============================================================ */
+const Badge = ({ children, tone='neutral' }) => {
+  const tones = {
+    neutral:'bg-champagne-100 text-ink-800 border-champagne-200',
+    rose:'bg-rose-100 text-rose-800 border-rose-200',
+    gold:'bg-champagne-200 text-champagne-800 border-champagne-300',
+    success:'bg-emerald-50 text-emerald-800 border-emerald-200',
+    warn:'bg-amber-50 text-amber-800 border-amber-200',
+    info:'bg-sky-50 text-sky-800 border-sky-200',
+  };
+  return <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${tones[tone]}`}>{children}</span>;
+};
+
+const Button = ({ children, variant='primary', size='md', className='', ...rest }) => {
+  const v = {
+    primary:'bg-ink-900 text-champagne-50 hover:bg-ink-800',
+    soft:'bg-champagne-100 text-ink-900 hover:bg-champagne-200 border border-champagne-200',
+    ghost:'text-ink-900 hover:bg-champagne-100',
+    rose:'bg-rose-400 text-white hover:bg-rose-500',
+    outline:'border border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-champagne-50',
+  }[variant];
+  const s = { sm:'px-3 py-1.5 text-sm', md:'px-5 py-2.5 text-sm', lg:'px-7 py-3.5 text-base' }[size];
+  return <button className={`inline-flex items-center justify-center gap-2 rounded-full transition-colors font-medium ${v} ${s} ${className}`} {...rest}>{children}</button>;
+};
+
+const Card = ({ children, className='' }) => (
+  <div className={`bg-white rounded-3xl border border-champagne-100 ${className}`}>{children}</div>
+);
+
+const Section = ({ children, className='' }) => (
+  <section className={`max-w-7xl mx-auto px-5 md:px-8 ${className}`}>{children}</section>
+);
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+function App(){
+  const [view, setView] = useState('home');
+  const [role, setRole] = useState('CUSTOMER'); // CUSTOMER, STAFF, ADMIN
+  const [bookingDraft, setBookingDraft] = useState(null);
+
+  return (
+    <div className="min-h-screen grain">
+      <Header view={view} setView={setView} role={role} setRole={setRole} />
+      <main className="pb-24">
+        {view==='home' && <Home setView={setView} />}
+        {view==='services' && <ServicesPage setView={setView} setBookingDraft={setBookingDraft} />}
+        {view==='booking' && <BookingWizard initial={bookingDraft} setView={setView} />}
+        {view==='team' && <TeamPage setView={setView} />}
+        {view==='match' && <BeautyMatch setView={setView} />}
+        {view==='account' && <AccountDashboard setView={setView} />}
+        {view==='journey' && <BeautyJourney setView={setView} />}
+        {view==='forms' && <FormsPage setView={setView} />}
+        {view==='staff-calendar' && <StaffCalendar />}
+        {view==='admin' && <AdminDashboard setView={setView} />}
+        {view==='admin-services' && <AdminServices setView={setView} />}
+        {view==='admin-treatwell' && <AdminTreatwell setView={setView} />}
+      </main>
+      <Footer setView={setView} />
+      <RoleSwitcher role={role} setRole={setRole} setView={setView} />
+    </div>
+  );
+}
+
+/* ============================================================
+   HEADER + FOOTER + ROLE SWITCHER
+   ============================================================ */
+function Header({ view, setView, role }){
+  const customerNav = [
+    { k:'home', label:'Home' },
+    { k:'services', label:'Leistungen' },
+    { k:'team', label:'Team' },
+    { k:'match', label:'Beauty Match' },
+    { k:'account', label:'Mein Konto' },
+  ];
+  const staffNav = [
+    { k:'staff-calendar', label:'Kalender' },
+    { k:'home', label:'Übersicht' },
+  ];
+  const adminNav = [
+    { k:'admin', label:'Dashboard' },
+    { k:'admin-services', label:'Leistungen' },
+    { k:'staff-calendar', label:'Kalender' },
+    { k:'admin-treatwell', label:'Treatwell-Sync' },
+  ];
+  const nav = role==='STAFF' ? staffNav : role==='ADMIN' ? adminNav : customerNav;
+  return (
+    <header className="sticky top-0 z-40 backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
+      <Section className="flex items-center justify-between py-4">
+        <button onClick={()=>setView('home')} className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-ink-900 grid place-items-center text-champagne-50 font-display text-lg">F</div>
+          <div className="leading-tight text-left">
+            <div className="font-display text-xl text-ink-900">Feminity</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-ink-600">Oberkassel</div>
+          </div>
+        </button>
+        <nav className="hidden md:flex items-center gap-1">
+          {nav.map(n=>(
+            <button key={n.k} onClick={()=>setView(n.k)}
+              className={`px-3 py-2 rounded-full text-sm transition-colors ${view===n.k?'bg-ink-900 text-champagne-50':'text-ink-700 hover:bg-champagne-100'}`}>
+              {n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
+          {role==='CUSTOMER' && <Button onClick={()=>setView('services')} size="sm">Termin buchen</Button>}
+        </div>
+      </Section>
+    </header>
+  );
+}
+
+function Footer({ setView }){
+  return (
+    <footer className="border-t border-champagne-100 bg-champagne-100/40">
+      <Section className="py-12 grid md:grid-cols-4 gap-8">
+        <div>
+          <div className="font-display text-2xl text-ink-900">Feminity Oberkassel</div>
+          <p className="text-sm text-ink-600 mt-2">Beauty · Hair · Skin · Düsseldorf-Oberkassel</p>
+          <div className="flex gap-3 mt-4">
+            <span className="w-9 h-9 rounded-full border border-ink-900 grid place-items-center text-ink-900">IG</span>
+            <span className="w-9 h-9 rounded-full border border-ink-900 grid place-items-center text-ink-900">TT</span>
+            <span className="w-9 h-9 rounded-full border border-ink-900 grid place-items-center text-ink-900">WA</span>
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest text-ink-700 mb-3">Salon</div>
+          <ul className="space-y-2 text-sm">
+            <li><button onClick={()=>setView('services')} className="hover:underline">Leistungen</button></li>
+            <li><button onClick={()=>setView('team')} className="hover:underline">Team</button></li>
+            <li><button onClick={()=>setView('match')} className="hover:underline">Beauty Match</button></li>
+          </ul>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest text-ink-700 mb-3">Konto</div>
+          <ul className="space-y-2 text-sm">
+            <li><button onClick={()=>setView('account')} className="hover:underline">Mein Konto</button></li>
+            <li><button onClick={()=>setView('journey')} className="hover:underline">Beauty Journey</button></li>
+            <li><button onClick={()=>setView('forms')} className="hover:underline">Aufklärungsbögen</button></li>
+          </ul>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest text-ink-700 mb-3">Rechtliches</div>
+          <ul className="space-y-2 text-sm text-ink-600">
+            <li>Impressum</li>
+            <li>Datenschutz</li>
+            <li>AGB</li>
+            <li>Cookie-Einstellungen</li>
+          </ul>
+        </div>
+      </Section>
+      <div className="border-t border-champagne-200 py-4 text-center text-xs text-ink-600">© 2026 Feminity by Jule · Prototyp</div>
+    </footer>
+  );
+}
+
+function RoleSwitcher({ role, setRole, setView }){
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <Card className="px-3 py-2 shadow-lg">
+        <div className="text-[10px] uppercase tracking-widest text-ink-600 mb-1">Demo · Rolle wechseln</div>
+        <div className="flex gap-1">
+          {[ ['CUSTOMER','Kundin','home'], ['STAFF','Stylistin','staff-calendar'], ['ADMIN','Admin','admin'] ].map(([k,l,v])=>(
+            <button key={k} onClick={()=>{setRole(k); setView(v);}}
+              className={`px-3 py-1 rounded-full text-xs ${role===k?'bg-ink-900 text-champagne-50':'bg-champagne-100 text-ink-700'}`}>{l}</button>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+   HOME / LANDING
+   ============================================================ */
+function Home({ setView }){
+  return (
+    <>
+      <Section className="pt-12 md:pt-20 pb-16">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div className="anim-fade">
+            <div className="text-xs uppercase tracking-[0.3em] text-ink-600 mb-4">Beauty · Hair · Skin</div>
+            <h1 className="font-display text-5xl md:text-7xl leading-[1.05] text-ink-900">
+              Dein Premium<br/>Beauty-Space<br/><em className="text-rose-500 not-italic font-light italic">in Oberkassel.</em>
+            </h1>
+            <p className="text-ink-700 mt-6 text-lg max-w-md">Hochwertige Treatments, ehrliche Beratung, ein Ort zum Durchatmen. Buche jetzt deinen Termin online – einfach, sicher, jederzeit.</p>
+            <div className="flex flex-wrap gap-3 mt-8">
+              <Button size="lg" onClick={()=>setView('services')}>Termin buchen</Button>
+              <Button size="lg" variant="outline" onClick={()=>setView('match')}>Beauty Match starten</Button>
+            </div>
+            <div className="flex gap-6 mt-10 text-sm text-ink-700">
+              <div><div className="font-display text-3xl text-ink-900">15+</div>Jahre Erfahrung</div>
+              <div><div className="font-display text-3xl text-ink-900">4.9</div>Google Bewertung</div>
+              <div><div className="font-display text-3xl text-ink-900">2k+</div>Kundinnen</div>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400 grain"></div>
+            <Card className="absolute -bottom-6 -left-6 p-5 max-w-xs shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-rose-300"></div>
+                <div>
+                  <div className="font-medium text-sm">Jule · Master Beautician</div>
+                  <div className="text-xs text-ink-600">Heute verfügbar · 14:00 frei</div>
+                </div>
+              </div>
+              <Button size="sm" className="mt-3 w-full" onClick={()=>setView('services')}>Slot sichern</Button>
+            </Card>
+          </div>
+        </div>
+      </Section>
+
+      <Section className="py-16">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Signature Services</div>
+            <h2 className="font-display text-4xl text-ink-900 mt-2">Was Feminity ausmacht</h2>
+          </div>
+          <button onClick={()=>setView('services')} className="hidden md:inline-flex text-sm underline">Alle Leistungen ansehen</button>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {SERVICES.filter(s=>s.signature).slice(0,3).map(s=>(
+            <Card key={s.id} className="overflow-hidden group">
+              <div className="aspect-[4/3] bg-gradient-to-br from-champagne-200 to-rose-200"></div>
+              <div className="p-6">
+                <div className="text-xs uppercase tracking-widest text-ink-600">{s.cat}</div>
+                <h3 className="font-display text-2xl mt-2 text-ink-900">{s.name}</h3>
+                <p className="text-sm text-ink-700 mt-2">{s.desc}</p>
+                <div className="flex items-center justify-between mt-5">
+                  <div className="text-sm text-ink-600">{minToHrs(s.duration)} · {s.fromPrice?'ab ':''}{fmt(s.price)}</div>
+                  <Button size="sm" variant="soft" onClick={()=>setView('services')}>Buchen</Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="py-16">
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <Card className="p-8">
+            <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Beauty Match</div>
+            <h2 className="font-display text-4xl mt-3 text-ink-900">Nicht sicher, was du brauchst?</h2>
+            <p className="text-ink-700 mt-3">Beantworte 6 kurze Fragen zu deiner Haut, deinem Haar und deinem Anlass – wir empfehlen dir das passende Treatment.</p>
+            <Button className="mt-6" onClick={()=>setView('match')}>Beauty Match starten</Button>
+          </Card>
+          <Card className="p-8 bg-ink-900 text-champagne-50 border-ink-900">
+            <div className="text-xs uppercase tracking-[0.3em] text-rose-300">Beauty Passport</div>
+            <h2 className="font-display text-4xl mt-3">Deine Journey, dokumentiert.</h2>
+            <p className="text-champagne-100 mt-3">Jede Behandlung, jede Farbformel, jede Empfehlung – an einem Ort. Damit deine nächste Verwandlung perfekt aufbaut.</p>
+            <Button variant="rose" className="mt-6" onClick={()=>setView('journey')}>Journey ansehen</Button>
+          </Card>
+        </div>
+      </Section>
+    </>
+  );
+}
+
+/* ============================================================
+   SERVICES PAGE
+   ============================================================ */
+function ServicesPage({ setView, setBookingDraft }){
+  const [filter, setFilter] = useState('ALL');
+  const [search, setSearch] = useState('');
+  const filtered = useMemo(()=>SERVICES.filter(s=>
+    (filter==='ALL'||s.area===filter) &&
+    (search==='' || s.name.toLowerCase().includes(search.toLowerCase()) || s.cat.toLowerCase().includes(search.toLowerCase()))
+  ),[filter,search]);
+
+  return (
+    <Section className="py-12">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Leistungen & Preisliste</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Treatments</h1>
+      <div className="flex flex-wrap gap-3 mt-8 items-center">
+        {[['ALL','Alle'],['HAIR','Hair'],['BEAUTY','Beauty']].map(([k,l])=>(
+          <button key={k} onClick={()=>setFilter(k)}
+            className={`px-4 py-2 rounded-full text-sm border ${filter===k?'bg-ink-900 text-champagne-50 border-ink-900':'border-champagne-200 text-ink-700 hover:bg-champagne-100'}`}>{l}</button>
+        ))}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche..." className="ml-auto px-4 py-2 rounded-full border border-champagne-200 bg-white text-sm w-full md:w-72 focus:outline-none focus:border-ink-900" />
+      </div>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
+        {filtered.map(s=>(
+          <Card key={s.id} className="p-6 flex flex-col">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-ink-600">{s.cat}</div>
+                <h3 className="font-display text-2xl text-ink-900 mt-1">{s.name}</h3>
+              </div>
+              {s.signature && <Badge tone="gold">Signature</Badge>}
+            </div>
+            <p className="text-sm text-ink-700 mt-3 flex-1">{s.desc}</p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Badge>{minToHrs(s.duration)}</Badge>
+              {s.requiresForm && <Badge tone="warn">Aufklärungsbogen</Badge>}
+              {s.online===false && <Badge tone="info">Beratung erforderlich</Badge>}
+            </div>
+            <div className="flex items-center justify-between mt-5 pt-5 border-t border-champagne-100">
+              <div className="font-display text-2xl text-ink-900">{s.fromPrice?'ab ':''}{fmt(s.price)}</div>
+              <Button size="sm" onClick={()=>{ setBookingDraft({ serviceId:s.id }); setView('booking'); }}>Buchen</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ============================================================
+   BOOKING WIZARD
+   ============================================================ */
+function BookingWizard({ initial, setView }){
+  const [step, setStep] = useState(1);
+  const [picked, setPicked] = useState(initial?.serviceId ? [initial.serviceId] : []);
+  const [staff, setStaff] = useState('any');
+  const [date, setDate] = useState('2026-05-04');
+  const [time, setTime] = useState(null);
+  const [customer, setCustomer] = useState({ name:'', email:'', phone:'' });
+  const [formAccepted, setFormAccepted] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const totalDuration = picked.reduce((a,id)=>a+(SERVICES.find(s=>s.id===id)?.duration||0),0);
+  const totalPrice = picked.reduce((a,id)=>a+(SERVICES.find(s=>s.id===id)?.price||0),0);
+  const hasFromPrice = picked.some(id=>SERVICES.find(s=>s.id===id)?.fromPrice);
+  const requiresForm = picked.some(id=>SERVICES.find(s=>s.id===id)?.requiresForm);
+
+  const SLOTS = ['09:00','09:30','10:00','11:30','13:00','14:00','15:30','17:00'];
+
+  const steps = ['Leistung','Stylistin','Termin','Daten', requiresForm?'Aufklärung':null,'Zusammenfassung'].filter(Boolean);
+
+  if(confirmed){
+    return (
+      <Section className="py-16">
+        <Card className="max-w-2xl mx-auto p-10 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 grid place-items-center mx-auto text-emerald-600 text-3xl">✓</div>
+          <h2 className="font-display text-4xl text-ink-900 mt-6">Buchung bestätigt</h2>
+          <p className="text-ink-700 mt-3">Du erhältst gleich eine Bestätigung per E-Mail und WhatsApp. Wir freuen uns auf dich.</p>
+          <Card className="mt-6 p-5 bg-champagne-50 text-left">
+            <div className="font-medium">{picked.map(id=>SERVICES.find(s=>s.id===id)?.name).join(' · ')}</div>
+            <div className="text-sm text-ink-700 mt-1">{date} um {time} · {staff==='any'?'beliebige Mitarbeiterin':STAFF.find(s=>s.id===staff)?.name}</div>
+            <div className="text-sm text-ink-700">Dauer {minToHrs(totalDuration)} · {hasFromPrice?'ab ':''}{fmt(totalPrice)}</div>
+          </Card>
+          <Button className="mt-6" onClick={()=>{ setConfirmed(false); setStep(1); setView('account'); }}>Zu meinen Terminen</Button>
+        </Card>
+      </Section>
+    );
+  }
+
+  return (
+    <Section className="py-12">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Online-Buchung</div>
+      <h1 className="font-display text-4xl md:text-5xl text-ink-900 mt-2">Termin buchen</h1>
+
+      <div className="flex items-center gap-2 mt-6 overflow-x-auto scroll-hidden">
+        {steps.map((s,i)=>(
+          <div key={s} className={`flex items-center gap-2 ${i+1<=step?'text-ink-900':'text-ink-600'}`}>
+            <div className={`w-7 h-7 rounded-full grid place-items-center text-xs ${i+1<step?'bg-ink-900 text-champagne-50':i+1===step?'bg-rose-400 text-white':'bg-champagne-200 text-ink-700'}`}>{i+1}</div>
+            <div className="text-sm whitespace-nowrap">{s}</div>
+            {i<steps.length-1 && <div className="w-8 h-px bg-champagne-200"></div>}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6 mt-8">
+        <div className="md:col-span-2 space-y-6">
+          {step===1 && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-4">Wähle deine Leistung(en)</h3>
+              <div className="space-y-3">
+                {SERVICES.filter(s=>s.online!==false).map(s=>{
+                  const on = picked.includes(s.id);
+                  return (
+                    <button key={s.id} onClick={()=>setPicked(p=>on?p.filter(x=>x!==s.id):[...p,s.id])}
+                      className={`w-full text-left p-4 rounded-2xl border transition ${on?'border-ink-900 bg-champagne-100':'border-champagne-200 hover:border-champagne-300'}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-ink-600">{s.cat}</div>
+                          <div className="font-medium mt-1">{s.name}</div>
+                          <div className="text-xs text-ink-600 mt-0.5">{minToHrs(s.duration)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-display text-xl">{s.fromPrice?'ab ':''}{fmt(s.price)}</div>
+                          <div className={`mt-1 w-5 h-5 rounded-full border-2 ${on?'bg-ink-900 border-ink-900':'border-champagne-300'}`}></div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {step===2 && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-4">Wähle deine Stylistin</h3>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <button onClick={()=>setStaff('any')} className={`p-4 rounded-2xl border text-left ${staff==='any'?'border-ink-900 bg-champagne-100':'border-champagne-200'}`}>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-champagne-300 mb-3"></div>
+                  <div className="font-medium">Beliebige Stylistin</div>
+                  <div className="text-xs text-ink-600 mt-1">Schnellster Termin verfügbar</div>
+                </button>
+                {STAFF.map(s=>{
+                  const qualified = picked.length===0 || picked.every(pid=>SERVICES.find(sv=>sv.id===pid)?.staff.includes(s.id));
+                  return (
+                    <button key={s.id} disabled={!qualified} onClick={()=>setStaff(s.id)}
+                      className={`p-4 rounded-2xl border text-left transition ${staff===s.id?'border-ink-900 bg-champagne-100':'border-champagne-200'} ${!qualified?'opacity-40 cursor-not-allowed':''}`}>
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-300 to-champagne-400 mb-3"></div>
+                      <div className="font-medium">{s.name}</div>
+                      <div className="text-xs text-ink-600 mt-1">{s.lead} Lead</div>
+                      {!qualified && <div className="text-xs text-amber-700 mt-1">Erbringt diese Leistung nicht</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {step===3 && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-4">Datum und Uhrzeit</h3>
+              <div className="flex gap-2 overflow-x-auto scroll-hidden pb-2">
+                {Array.from({length:14}).map((_,i)=>{
+                  const d = new Date(2026,4,1+i);
+                  const iso = d.toISOString().slice(0,10);
+                  const lbl = d.toLocaleDateString('de-DE',{weekday:'short', day:'2-digit', month:'short'});
+                  return (
+                    <button key={iso} onClick={()=>setDate(iso)} className={`px-4 py-3 rounded-2xl border text-sm whitespace-nowrap ${date===iso?'border-ink-900 bg-ink-900 text-champagne-50':'border-champagne-200'}`}>{lbl}</button>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-5">
+                {SLOTS.map(t=>(
+                  <button key={t} onClick={()=>setTime(t)} className={`px-3 py-2.5 rounded-xl border text-sm ${time===t?'border-ink-900 bg-ink-900 text-champagne-50':'border-champagne-200 hover:bg-champagne-100'}`}>{t}</button>
+                ))}
+              </div>
+              <div className="text-xs text-ink-600 mt-4">Verfügbarkeit synchronisiert mit Treatwell und internem Kalender.</div>
+            </Card>
+          )}
+
+          {step===4 && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-4">Deine Daten</h3>
+              <div className="space-y-3">
+                <input className="w-full px-4 py-3 rounded-xl border border-champagne-200 bg-white" placeholder="Name" value={customer.name} onChange={e=>setCustomer({...customer,name:e.target.value})} />
+                <input className="w-full px-4 py-3 rounded-xl border border-champagne-200 bg-white" placeholder="E-Mail" type="email" value={customer.email} onChange={e=>setCustomer({...customer,email:e.target.value})} />
+                <input className="w-full px-4 py-3 rounded-xl border border-champagne-200 bg-white" placeholder="Telefon (für WhatsApp-Erinnerung)" value={customer.phone} onChange={e=>setCustomer({...customer,phone:e.target.value})} />
+                <label className="flex items-start gap-2 text-sm text-ink-700 mt-3">
+                  <input type="checkbox" className="mt-1" required /> Ich akzeptiere Datenschutzerklärung und AGB.
+                </label>
+                <label className="flex items-start gap-2 text-sm text-ink-700">
+                  <input type="checkbox" className="mt-1" /> Ich möchte WhatsApp-Erinnerungen erhalten.
+                </label>
+              </div>
+            </Card>
+          )}
+
+          {step===5 && requiresForm && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-2">Aufklärungsbogen</h3>
+              <p className="text-sm text-ink-700">Für die gewählte Leistung ist eine Aufklärung erforderlich. Bitte beantworte die folgenden Fragen vor deinem Termin.</p>
+              <div className="mt-5 space-y-4">
+                {[
+                  'Hast du bekannte Allergien gegen kosmetische Wirkstoffe?',
+                  'Bist du aktuell schwanger oder stillst du?',
+                  'Hattest du in den letzten 6 Monaten eine Henna-Behandlung?',
+                  'Nimmst du blutverdünnende Medikamente?'
+                ].map((q,i)=>(
+                  <div key={i} className="p-4 rounded-2xl bg-champagne-50">
+                    <div className="text-sm font-medium">{q}</div>
+                    <div className="flex gap-2 mt-2">
+                      <button className="px-4 py-1.5 rounded-full text-xs bg-white border border-champagne-200">Ja</button>
+                      <button className="px-4 py-1.5 rounded-full text-xs bg-white border border-champagne-200">Nein</button>
+                    </div>
+                  </div>
+                ))}
+                <div className="p-4 rounded-2xl border-2 border-dashed border-champagne-300 text-center text-sm text-ink-600">
+                  Hier digital unterschreiben
+                </div>
+                <label className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={formAccepted} onChange={e=>setFormAccepted(e.target.checked)} />
+                  Ich bestätige die wahrheitsgemäße Beantwortung und stimme der Behandlung zu.
+                </label>
+              </div>
+            </Card>
+          )}
+
+          {step===steps.length && (
+            <Card className="p-6">
+              <h3 className="font-display text-2xl mb-4">Zusammenfassung</h3>
+              <div className="space-y-3 text-sm">
+                <Row label="Leistung" value={picked.map(id=>SERVICES.find(s=>s.id===id)?.name).join(', ')} />
+                <Row label="Stylistin" value={staff==='any'?'beliebige':STAFF.find(s=>s.id===staff)?.name} />
+                <Row label="Datum" value={`${date} um ${time||'—'}`} />
+                <Row label="Dauer" value={minToHrs(totalDuration)} />
+                <Row label="Aufklärungsbogen" value={requiresForm?(formAccepted?'unterzeichnet':'fehlt'):'—'} />
+                <div className="border-t border-champagne-200 pt-3 flex items-center justify-between">
+                  <div className="font-medium">Gesamt</div>
+                  <div className="font-display text-2xl">{hasFromPrice?'ab ':''}{fmt(totalPrice)}</div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="ghost" onClick={()=>step>1?setStep(step-1):setView('services')}>Zurück</Button>
+            {step<steps.length ? (
+              <Button onClick={()=>setStep(step+1)} disabled={
+                (step===1 && picked.length===0) ||
+                (step===3 && !time) ||
+                (step===4 && (!customer.name||!customer.email)) ||
+                (step===5 && requiresForm && !formAccepted)
+              }>Weiter</Button>
+            ) : (
+              <Button variant="rose" onClick={()=>setConfirmed(true)}>Verbindlich buchen</Button>
+            )}
+          </div>
+        </div>
+
+        <aside className="md:sticky md:top-24 self-start">
+          <Card className="p-6">
+            <div className="text-xs uppercase tracking-widest text-ink-600">Deine Auswahl</div>
+            {picked.length===0 && <p className="text-sm text-ink-600 mt-3">Noch keine Leistung gewählt.</p>}
+            <div className="space-y-2 mt-3">
+              {picked.map(id=>{ const s=SERVICES.find(s=>s.id===id); return (
+                <div key={id} className="flex justify-between text-sm">
+                  <span>{s.name}</span><span className="text-ink-600">{minToHrs(s.duration)}</span>
+                </div>
+              ); })}
+            </div>
+            {picked.length>0 && (
+              <div className="border-t border-champagne-100 mt-4 pt-4 text-sm">
+                <div className="flex justify-between"><span>Dauer</span><span>{minToHrs(totalDuration)}</span></div>
+                <div className="flex justify-between mt-1"><span>Gesamt</span><span className="font-display text-lg">{hasFromPrice?'ab ':''}{fmt(totalPrice)}</span></div>
+              </div>
+            )}
+          </Card>
+        </aside>
+      </div>
+    </Section>
+  );
+}
+
+function Row({label, value}){ return <div className="flex justify-between"><span className="text-ink-600">{label}</span><span className="font-medium">{value}</span></div>; }
+
+/* ============================================================
+   TEAM PAGE
+   ============================================================ */
+function TeamPage({ setView }){
+  return (
+    <Section className="py-12">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Team</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Die Hände hinter Feminity</h1>
+      <div className="grid md:grid-cols-2 gap-6 mt-10">
+        {STAFF.map(s=>(
+          <Card key={s.id} className="overflow-hidden">
+            <div className="aspect-[3/2] bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400"></div>
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-3xl text-ink-900">{s.name}</h3>
+                  <div className="text-xs uppercase tracking-widest text-ink-600 mt-1">{s.role}</div>
+                </div>
+                <Badge tone="rose">Lead {s.lead}</Badge>
+              </div>
+              <p className="italic text-ink-700 mt-4 font-display text-lg">„{s.statement}"</p>
+              <div className="flex flex-wrap gap-2 mt-5">{s.specs.map(sp=><Badge key={sp}>{sp}</Badge>)}</div>
+              <div className="flex justify-between text-sm text-ink-600 mt-5 pt-5 border-t border-champagne-100">
+                <span>{s.languages.join(' · ')}</span>
+                <span>{s.years} Jahre Erfahrung</span>
+              </div>
+              <Button className="mt-5 w-full" onClick={()=>setView('services')}>Bei {s.name} buchen</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ============================================================
+   BEAUTY MATCH (Quiz)
+   ============================================================ */
+function BeautyMatch({ setView }){
+  const QUESTIONS = [
+    { q:'Was steht im Vordergrund?', opts:['Hair','Skin','Make-up','Komplettverwandlung'] },
+    { q:'Wie viel Zeit hast du?', opts:['unter 1 h','1–2 h','2–4 h','flexibel'] },
+    { q:'Anlass?', opts:['Alltag','Event / Hochzeit','Selbstpflege','Beratung'] },
+    { q:'Hauttyp?', opts:['trocken','normal','Mischhaut','sensibel'] },
+    { q:'Budget?', opts:['bis 100 €','100–250 €','250–500 €','offen'] },
+    { q:'Wie oft kommst du zu uns?', opts:['Erstmals','selten','regelmäßig','VIP'] },
+  ];
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const done = step===QUESTIONS.length;
+
+  const recommendation = useMemo(()=>{
+    const a = answers[0];
+    if(a==='Hair') return SERVICES.filter(s=>s.area==='HAIR').slice(0,3);
+    if(a==='Skin') return [SERVICES.find(s=>s.id==='svc-greenpeel'), SERVICES.find(s=>s.id==='svc-skin'), SERVICES.find(s=>s.id==='svc-consult')];
+    if(a==='Make-up') return [SERVICES.find(s=>s.id==='svc-makeup'), SERVICES.find(s=>s.id==='svc-pmu'), SERVICES.find(s=>s.id==='svc-consult')];
+    return SERVICES.filter(s=>s.signature).slice(0,3);
+  },[answers]);
+
+  return (
+    <Section className="py-12 max-w-3xl mx-auto">
+      <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Beauty Match</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Finde dein Treatment</h1>
+
+      {!done && (
+        <Card className="p-8 mt-8">
+          <div className="text-xs uppercase tracking-widest text-ink-600">Frage {step+1} von {QUESTIONS.length}</div>
+          <h3 className="font-display text-3xl mt-3">{QUESTIONS[step].q}</h3>
+          <div className="grid sm:grid-cols-2 gap-3 mt-6">
+            {QUESTIONS[step].opts.map(o=>(
+              <button key={o} onClick={()=>{ setAnswers({...answers,[step]:o}); setStep(step+1); }}
+                className="p-4 rounded-2xl border border-champagne-200 hover:border-ink-900 hover:bg-champagne-100 text-left text-base transition">{o}</button>
+            ))}
+          </div>
+          <div className="flex justify-between mt-6 text-sm">
+            <button onClick={()=>step>0&&setStep(step-1)} className="text-ink-600 hover:underline">Zurück</button>
+            <div className="text-ink-600">{Object.keys(answers).length} / {QUESTIONS.length}</div>
+          </div>
+        </Card>
+      )}
+
+      {done && (
+        <Card className="p-8 mt-8">
+          <div className="text-xs uppercase tracking-widest text-ink-600">Deine Empfehlung</div>
+          <h3 className="font-display text-3xl mt-2">Das passt zu dir</h3>
+          <div className="space-y-3 mt-6">
+            {recommendation.filter(Boolean).map(s=>(
+              <div key={s.id} className="flex items-center justify-between p-4 rounded-2xl bg-champagne-50">
+                <div>
+                  <div className="text-xs text-ink-600">{s.cat}</div>
+                  <div className="font-medium">{s.name}</div>
+                  <div className="text-xs text-ink-600 mt-0.5">{minToHrs(s.duration)} · {s.fromPrice?'ab ':''}{fmt(s.price)}</div>
+                </div>
+                <Button size="sm" onClick={()=>setView('booking')}>Buchen</Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 mt-6">
+            <Button variant="soft" onClick={()=>{setAnswers({}); setStep(0);}}>Noch einmal</Button>
+            <Button variant="ghost" onClick={()=>setView('services')}>Alle Leistungen ansehen</Button>
+          </div>
+        </Card>
+      )}
+    </Section>
+  );
+}
+
+/* ============================================================
+   ACCOUNT DASHBOARD
+   ============================================================ */
+function AccountDashboard({ setView }){
+  return (
+    <Section className="py-12">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Mein Konto</div>
+          <h1 className="font-display text-5xl text-ink-900 mt-2">Willkommen, {CUSTOMER.name.split(' ')[0]}</h1>
+        </div>
+        <div className="flex gap-2">
+          <Badge tone="gold">{CUSTOMER.tier}</Badge>
+          <Badge>{CUSTOMER.loyaltyPoints} Beauty Points</Badge>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-5 mt-8">
+        <Card className="p-6 md:col-span-2">
+          <h3 className="font-display text-2xl">Nächster Termin</h3>
+          {CUSTOMER.upcoming.map(u=>(
+            <div key={u.id} className="mt-4 p-5 rounded-2xl bg-champagne-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-lg">{u.service}</div>
+                  <div className="text-sm text-ink-700 mt-1">bei {u.staff}</div>
+                </div>
+                <Badge tone="success">{u.formStatus==='COMPLETE'?'bereit':'Aufklärung fehlt'}</Badge>
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-champagne-200">
+                <div className="text-sm">{u.date} um {u.time}</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="soft">Verschieben</Button>
+                  <Button size="sm" variant="ghost">Stornieren</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card className="p-6 bg-ink-900 text-champagne-50 border-ink-900">
+          <div className="text-xs uppercase tracking-widest text-rose-300">Beauty Passport</div>
+          <h3 className="font-display text-2xl mt-2">Deine Journey</h3>
+          <div className="font-display text-5xl mt-4">{CUSTOMER.passport.length}</div>
+          <div className="text-sm text-champagne-100">dokumentierte Treatments</div>
+          <Button variant="rose" size="sm" className="mt-5" onClick={()=>setView('journey')}>Ansehen</Button>
+        </Card>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-5 mt-5">
+        <Card className="p-6">
+          <h3 className="font-display text-xl">Schnellaktionen</h3>
+          <div className="space-y-2 mt-4">
+            <Button variant="soft" className="w-full justify-start" onClick={()=>setView('services')}>Neuen Termin buchen</Button>
+            <Button variant="soft" className="w-full justify-start" onClick={()=>setView('forms')}>Aufklärungsbögen</Button>
+            <Button variant="soft" className="w-full justify-start" onClick={()=>setView('match')}>Beauty Match</Button>
+          </div>
+        </Card>
+        <Card className="p-6 md:col-span-2">
+          <h3 className="font-display text-xl">Termin-Historie</h3>
+          <div className="mt-4 divide-y divide-champagne-100">
+            {CUSTOMER.history.map((h,i)=>(
+              <div key={i} className="py-3 flex justify-between text-sm">
+                <div>
+                  <div className="font-medium">{h.service}</div>
+                  <div className="text-ink-600">{h.staff} · {h.date}</div>
+                </div>
+                <div className="font-medium">{h.price}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </Section>
+  );
+}
+
+/* ============================================================
+   BEAUTY JOURNEY
+   ============================================================ */
+function BeautyJourney({ setView }){
+  return (
+    <Section className="py-12">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Beauty Passport</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Deine Beauty Journey</h1>
+
+      <div className="mt-10 relative">
+        <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-champagne-200"></div>
+        <div className="space-y-6">
+          {CUSTOMER.passport.map((p,i)=>(
+            <div key={i} className="relative pl-12">
+              <div className="absolute left-2 top-3 w-5 h-5 rounded-full bg-rose-400 border-4 border-champagne-50"></div>
+              <Card className="p-6">
+                <div className="text-xs uppercase tracking-widest text-ink-600">{p.date}</div>
+                <h3 className="font-display text-2xl mt-1">{p.title}</h3>
+                <p className="text-sm text-ink-700 mt-3">{p.notes}</p>
+                {p.followUp && <div className="mt-4 p-3 rounded-xl bg-champagne-50 text-sm"><strong>Folge-Empfehlung:</strong> {p.followUp}</div>}
+              </Card>
+            </div>
+          ))}
+        </div>
+      </div>
+      <Button className="mt-8" onClick={()=>setView('account')}>Zurück zum Konto</Button>
+    </Section>
+  );
+}
+
+/* ============================================================
+   FORMS PAGE
+   ============================================================ */
+function FormsPage({ setView }){
+  const forms = [
+    { name:'Aufklärungsbogen Coloration', status:'ABGESCHLOSSEN', date:'12.03.2026', signed:true },
+    { name:'Aufklärungsbogen PMU', status:'OFFEN', date:'fällig vor 04.05.2026', signed:false },
+    { name:'Hautanalysebogen', status:'ABGESCHLOSSEN', date:'18.01.2026', signed:true },
+  ];
+  return (
+    <Section className="py-12">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Formulare</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Aufklärungs- und Anamnesebögen</h1>
+      <p className="text-ink-700 mt-3 max-w-2xl">Hier findest du alle digitalen Formulare, die du im Rahmen deiner Behandlungen ausgefüllt hast oder noch ausfüllen sollst.</p>
+      <div className="grid md:grid-cols-2 gap-4 mt-8">
+        {forms.map((f,i)=>(
+          <Card key={i} className="p-6 flex items-center justify-between">
+            <div>
+              <h3 className="font-display text-xl">{f.name}</h3>
+              <div className="text-xs text-ink-600 mt-1">{f.date}</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge tone={f.signed?'success':'warn'}>{f.status}</Badge>
+              <Button size="sm" variant={f.signed?'soft':'primary'}>{f.signed?'Ansehen':'Ausfüllen'}</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ============================================================
+   STAFF CALENDAR
+   ============================================================ */
+function StaffCalendar(){
+  const [day, setDay] = useState(0);
+  const HOURS = Array.from({length:11}).map((_,i)=>9+i); // 09 - 19
+  const dayLabels = ['Mo 27.04','Di 28.04','Mi 29.04','Do 30.04','Fr 01.05','Sa 02.05'];
+
+  const bgFor = (area, src) => {
+    if(src==='TREATWELL') return 'bg-sky-50 border-sky-300';
+    if(area==='HAIR') return 'bg-champagne-100 border-champagne-300';
+    return 'bg-rose-100 border-rose-300';
+  };
+  const toMinutes = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+  const top = t => `${(toMinutes(t)-9*60)*1.0}px`;
+  const height = (s,e) => `${(toMinutes(e)-toMinutes(s))*1.0}px`;
+
+  return (
+    <Section className="py-8">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Kalender</div>
+          <h1 className="font-display text-4xl text-ink-900 mt-1">Tagesansicht</h1>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Badge tone="gold">Hair</Badge>
+          <Badge tone="rose">Beauty</Badge>
+          <Badge tone="info">Treatwell</Badge>
+          <Badge>Pause</Badge>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-5 overflow-x-auto scroll-hidden pb-2">
+        {dayLabels.map((d,i)=>(
+          <button key={i} onClick={()=>setDay(i)} className={`px-4 py-2 rounded-full text-sm whitespace-nowrap border ${day===i?'bg-ink-900 text-champagne-50 border-ink-900':'border-champagne-200'}`}>{d}</button>
+        ))}
+      </div>
+
+      <Card className="mt-5 overflow-hidden">
+        <div className="grid grid-cols-[60px_1fr_1fr] border-b border-champagne-100">
+          <div></div>
+          <div className="p-3 text-center font-display text-lg border-l border-champagne-100">Jule · Beauty</div>
+          <div className="p-3 text-center font-display text-lg border-l border-champagne-100">Nicky · Hair</div>
+        </div>
+        <div className="grid grid-cols-[60px_1fr_1fr] relative" style={{minHeight: HOURS.length*60+'px'}}>
+          <div className="border-r border-champagne-100">
+            {HOURS.map(h=>(
+              <div key={h} style={{height:'60px'}} className="text-xs text-ink-600 px-2 pt-1 border-b border-champagne-100">{String(h).padStart(2,'0')}:00</div>
+            ))}
+          </div>
+          {STAFF.map(stf=>(
+            <div key={stf.id} className="relative border-r border-champagne-100">
+              {HOURS.map(h=><div key={h} style={{height:'60px'}} className="border-b border-champagne-100"></div>)}
+              {MOCK_BOOKINGS.filter(b=>b.staff===stf.id).map(b=>(
+                <div key={b.id} className={`absolute left-1 right-1 rounded-xl border p-2 text-xs ${bgFor(b.area, b.source)}`}
+                  style={{ top: top(b.start), height: height(b.start, b.end) }}>
+                  <div className="font-medium truncate">{b.service}</div>
+                  <div className="text-ink-700 truncate">{b.customer}</div>
+                  <div className="text-[10px] text-ink-600 mt-0.5">{b.start}–{b.end} · {b.source}</div>
+                  {b.status==='REQUESTED' && <div className="absolute top-1 right-1"><Badge tone="warn">angefragt</Badge></div>}
+                  {b.status==='CHECKED_IN' && <div className="absolute top-1 right-1"><Badge tone="success">erschienen</Badge></div>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div className="grid md:grid-cols-3 gap-4 mt-5">
+        <Card className="p-5">
+          <div className="text-xs uppercase tracking-widest text-ink-600">Auslastung heute</div>
+          <div className="font-display text-4xl mt-2">82 %</div>
+          <div className="text-xs text-ink-600">6 Termine · 2 freie Slots</div>
+        </Card>
+        <Card className="p-5">
+          <div className="text-xs uppercase tracking-widest text-ink-600">Pflicht-Aufklärung offen</div>
+          <div className="font-display text-4xl mt-2">1</div>
+          <div className="text-xs text-amber-700">Lara K. · Green Peel · Erinnerung gesendet</div>
+        </Card>
+        <Card className="p-5">
+          <div className="text-xs uppercase tracking-widest text-ink-600">Treatwell-Sync</div>
+          <div className="font-display text-4xl mt-2 text-emerald-700">OK</div>
+          <div className="text-xs text-ink-600">letzter Sync vor 3 min · 0 Konflikte</div>
+        </Card>
+      </div>
+    </Section>
+  );
+}
+
+/* ============================================================
+   ADMIN DASHBOARD
+   ============================================================ */
+function AdminDashboard({ setView }){
+  const KPIs = [
+    { l:'Umsatz Monat', v:'18.420 €', d:'+12 %', tone:'success' },
+    { l:'Auslastung', v:'78 %', d:'+4 %', tone:'success' },
+    { l:'No-Shows', v:'3', d:'-2', tone:'success' },
+    { l:'Neue Kundinnen', v:'24', d:'+6', tone:'info' },
+  ];
+  return (
+    <Section className="py-10">
+      <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Admin</div>
+      <h1 className="font-display text-4xl text-ink-900 mt-1">Salon-Übersicht</h1>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+        {KPIs.map(k=>(
+          <Card key={k.l} className="p-5">
+            <div className="text-xs uppercase tracking-widest text-ink-600">{k.l}</div>
+            <div className="font-display text-3xl mt-2">{k.v}</div>
+            <Badge tone={k.tone}>{k.d}</Badge>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-5 mt-6">
+        <Card className="p-6 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-2xl">Heutige Termine</h3>
+            <Button size="sm" variant="soft" onClick={()=>setView('staff-calendar')}>Kalender</Button>
+          </div>
+          <div className="mt-4 divide-y divide-champagne-100">
+            {MOCK_BOOKINGS.map(b=>(
+              <div key={b.id} className="py-3 flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-medium">{b.start}–{b.end} · {b.service}</div>
+                  <div className="text-ink-600">{b.customer} · {b.staff==='jule'?'Jule':'Nicky'}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Badge tone={b.source==='TREATWELL'?'info':'gold'}>{b.source}</Badge>
+                  <Badge tone={b.status==='CHECKED_IN'?'success':b.status==='REQUESTED'?'warn':'neutral'}>{b.status}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="space-y-5">
+          <Card className="p-6">
+            <h3 className="font-display text-xl">Verwaltung</h3>
+            <div className="mt-3 space-y-2">
+              <Button variant="soft" className="w-full justify-start" onClick={()=>setView('admin-services')}>Leistungen & Preise</Button>
+              <Button variant="soft" className="w-full justify-start" onClick={()=>setView('admin-treatwell')}>Treatwell-Sync</Button>
+              <Button variant="soft" className="w-full justify-start">Mitarbeiterinnen</Button>
+              <Button variant="soft" className="w-full justify-start">Formularvorlagen</Button>
+              <Button variant="soft" className="w-full justify-start">Benachrichtigungen</Button>
+              <Button variant="soft" className="w-full justify-start">Rollen & Rechte</Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function AdminServices({ setView }){
+  return (
+    <Section className="py-10">
+      <button onClick={()=>setView('admin')} className="text-sm text-ink-600 hover:underline">← zurück</button>
+      <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
+        <h1 className="font-display text-4xl">Leistungsverwaltung</h1>
+        <div className="flex gap-2">
+          <Button variant="soft" size="sm">CSV importieren</Button>
+          <Button variant="soft" size="sm">Export JSON</Button>
+          <Button size="sm">Neue Leistung</Button>
+        </div>
+      </div>
+      <Card className="mt-6 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-champagne-100 text-left">
+            <tr>
+              <th className="p-3">Name</th>
+              <th className="p-3">Kategorie</th>
+              <th className="p-3">Dauer</th>
+              <th className="p-3">Preis</th>
+              <th className="p-3">Online</th>
+              <th className="p-3">Pflichtbogen</th>
+              <th className="p-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {SERVICES.map(s=>(
+              <tr key={s.id} className="border-t border-champagne-100">
+                <td className="p-3 font-medium">{s.name}</td>
+                <td className="p-3 text-ink-600">{s.cat}</td>
+                <td className="p-3">{minToHrs(s.duration)}</td>
+                <td className="p-3">{s.fromPrice?'ab ':''}{fmt(s.price)}</td>
+                <td className="p-3">{s.online===false?<Badge tone="warn">Beratung</Badge>:<Badge tone="success">aktiv</Badge>}</td>
+                <td className="p-3">{s.requiresForm?<Badge tone="info">{s.formKey}</Badge>:'—'}</td>
+                <td className="p-3 text-right"><button className="text-rose-600 hover:underline">bearbeiten</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </Section>
+  );
+}
+
+function AdminTreatwell({ setView }){
+  return (
+    <Section className="py-10 max-w-4xl">
+      <button onClick={()=>setView('admin')} className="text-sm text-ink-600 hover:underline">← zurück</button>
+      <h1 className="font-display text-4xl mt-3">Treatwell-Synchronisation</h1>
+      <p className="text-ink-700 mt-2">Venue-ID 516512 · Status der Verbindung und letzte Sync-Vorgänge.</p>
+
+      <Card className="p-6 mt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-ink-600">Verbindung</div>
+            <div className="font-display text-3xl mt-1">aktiv</div>
+            <div className="text-sm text-ink-600">letzter Sync: vor 3 Minuten</div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="soft" size="sm">Jetzt synchronisieren</Button>
+            <Button variant="ghost" size="sm">Konfiguration</Button>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3 mt-6">
+          <div className="p-4 rounded-xl bg-champagne-50">
+            <div className="text-xs uppercase text-ink-600">Importiert (24h)</div>
+            <div className="font-display text-2xl mt-1">14</div>
+          </div>
+          <div className="p-4 rounded-xl bg-champagne-50">
+            <div className="text-xs uppercase text-ink-600">Exportiert (24h)</div>
+            <div className="font-display text-2xl mt-1">9</div>
+          </div>
+          <div className="p-4 rounded-xl bg-amber-50">
+            <div className="text-xs uppercase text-ink-700">Konflikte</div>
+            <div className="font-display text-2xl mt-1">1</div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6 mt-5">
+        <h3 className="font-display text-2xl">Konfliktauflösung</h3>
+        <p className="text-sm text-ink-700 mt-1">Doppelte Belegung erkannt – bitte manuell entscheiden.</p>
+        <div className="mt-4 grid md:grid-cols-2 gap-3">
+          <div className="p-4 rounded-xl border border-rose-200 bg-rose-50">
+            <Badge tone="rose">App</Badge>
+            <div className="mt-2 font-medium">Signature Balayage · Marie F.</div>
+            <div className="text-sm text-ink-700">04.05. · 09:30–13:30 · Nicky</div>
+          </div>
+          <div className="p-4 rounded-xl border border-sky-200 bg-sky-50">
+            <Badge tone="info">Treatwell</Badge>
+            <div className="mt-2 font-medium">Coloration Premium · M. Schmidt</div>
+            <div className="text-sm text-ink-700">04.05. · 11:00–13:00 · Nicky</div>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-5">
+          <Button>App-Termin priorisieren</Button>
+          <Button variant="soft">Treatwell priorisieren</Button>
+          <Button variant="ghost">Manuell zuweisen</Button>
+        </div>
+      </Card>
+
+      <Card className="p-6 mt-5">
+        <h3 className="font-display text-2xl">Sync-Log</h3>
+        <div className="mt-3 divide-y divide-champagne-100 text-sm">
+          {[
+            ['28.04. 11:42','IN','3 Termine importiert','OK'],
+            ['28.04. 11:37','OUT','1 Termin exportiert','OK'],
+            ['28.04. 11:32','IN','2 Termine importiert · 1 Konflikt','WARN'],
+            ['28.04. 11:27','IN','0 Änderungen','OK'],
+          ].map((row,i)=>(
+            <div key={i} className="py-2 grid grid-cols-4 gap-2">
+              <div className="text-ink-600">{row[0]}</div>
+              <div><Badge tone={row[1]==='IN'?'info':'gold'}>{row[1]}</Badge></div>
+              <div>{row[2]}</div>
+              <div className="text-right"><Badge tone={row[3]==='OK'?'success':'warn'}>{row[3]}</Badge></div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </Section>
+  );
+}
+
+/* ============================================================
+   MOUNT
+   ============================================================ */
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
