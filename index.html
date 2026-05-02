@@ -238,6 +238,21 @@ function nextTier(p){
   }
   return null;
 }
+// Birthday Bonus: 3 days before birthday until birthday (inclusive)
+function birthdayBonusStatus(birthday, today = new Date()){
+  if(!birthday) return null;
+  const parts = birthday.split('-').map(Number);
+  if(parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+  const m = parts[1], d = parts[2];
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let bd = new Date(now.getFullYear(), m-1, d);
+  let diffDays = Math.round((bd - now) / 86400000);
+  if(diffDays < 0){
+    bd = new Date(now.getFullYear()+1, m-1, d);
+    diffDays = Math.round((bd - now) / 86400000);
+  }
+  return { eligible: diffDays >= 0 && diffDays <= 3, daysUntil: diffDays, year: bd.getFullYear() };
+}
 function loadUsers(){ try { return JSON.parse(localStorage.getItem(AUTH_KEY)||'[]'); } catch { return []; } }
 function saveUsers(u){ try { localStorage.setItem(AUTH_KEY, JSON.stringify(u)); } catch {} }
 function loadSession(){ try { return localStorage.getItem(SESSION_KEY); } catch { return null; } }
@@ -1496,6 +1511,15 @@ function AccountDashboard({ setView, auth }){
   const [photoError, setPhotoError] = useState('');
   const next = nextTier(u.loyaltyPoints);
   const tierLabel = TIER_THRESHOLDS.find(t=>t.tier===u.tier)?.label || u.tier;
+  const bdayStatus = birthdayBonusStatus(u.birthday);
+  const canClaimBday = bdayStatus?.eligible && u.lastBirthdayBonusYear !== bdayStatus.year;
+
+  function claimBirthdayBonus(){
+    auth.updateUser({
+      loyaltyPoints: u.loyaltyPoints + 50,
+      lastBirthdayBonusYear: bdayStatus.year,
+    });
+  }
 
   function handlePhotoChange(e){
     const file = e.target.files?.[0];
@@ -1563,6 +1587,24 @@ function AccountDashboard({ setView, auth }){
           <div className="p-3 rounded-xl bg-ink-800"><div className="text-rose-300 text-xs">Geburtstag</div><div>+50 Points</div></div>
         </div>
       </Card>
+
+      {/* Birthday Bonus — sichtbar 3 Tage vor bis am Geburtstag */}
+      {canClaimBday && (
+        <Card className="p-6 mt-5 bg-rose-50 border-rose-200 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-rose-600">🎂 Birthday Bonus</div>
+            <div className="font-display text-2xl text-ink-900 mt-1">
+              {bdayStatus.daysUntil === 0
+                ? 'Heute ist dein Geburtstag!'
+                : bdayStatus.daysUntil === 1
+                  ? 'Morgen ist dein Geburtstag!'
+                  : `Noch ${bdayStatus.daysUntil} Tage bis zu deinem Geburtstag`}
+            </div>
+            <div className="text-sm text-ink-700 mt-1">Sichere dir <strong>+50 Beauty Points</strong> als Geschenk von Feminity.</div>
+          </div>
+          <Button variant="rose" onClick={claimBirthdayBonus}>+50 Points einlösen</Button>
+        </Card>
+      )}
 
       {/* Nächster Termin & Beauty Passport */}
       <div className="grid md:grid-cols-3 gap-5 mt-5">
