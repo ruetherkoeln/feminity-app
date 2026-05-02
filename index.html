@@ -219,29 +219,139 @@ const Section = ({ children, className='' }) => (
 );
 
 /* ============================================================
+   AUTH (localStorage MVP — Prototyp, kein echtes Backend)
+   ============================================================ */
+const AUTH_KEY = 'feminity_users';
+const SESSION_KEY = 'feminity_session';
+const TIER_THRESHOLDS = [
+  { tier:'PLATINUM', points:3000, label:'Platinum' },
+  { tier:'GOLD',     points:1500, label:'Gold' },
+  { tier:'SILVER',   points:500,  label:'Silver' },
+  { tier:'BRONZE',   points:0,    label:'Bronze' },
+];
+function tierFromPoints(p){
+  return TIER_THRESHOLDS.find(t => p >= t.points).tier;
+}
+function nextTier(p){
+  for(let i=TIER_THRESHOLDS.length-1; i>=0; i--){
+    if(p < TIER_THRESHOLDS[i].points) return TIER_THRESHOLDS[i];
+  }
+  return null;
+}
+function loadUsers(){ try { return JSON.parse(localStorage.getItem(AUTH_KEY)||'[]'); } catch { return []; } }
+function saveUsers(u){ try { localStorage.setItem(AUTH_KEY, JSON.stringify(u)); } catch {} }
+function loadSession(){ try { return localStorage.getItem(SESSION_KEY); } catch { return null; } }
+function saveSession(e){ try { localStorage.setItem(SESSION_KEY, e); } catch {} }
+function clearSession(){ try { localStorage.removeItem(SESSION_KEY); } catch {} }
+
+function useAuth(){
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
+    const email = loadSession();
+    if(email){
+      const u = loadUsers().find(x => x.email === email);
+      if(u) setUser(u);
+    }
+    setLoading(false);
+  }, []);
+
+  function register(data){
+    const users = loadUsers();
+    if(users.find(u => u.email.toLowerCase() === data.email.toLowerCase())){
+      return { ok:false, error:'Diese E-Mail ist bereits registriert.' };
+    }
+    if(!data.password || data.password.length < 6){
+      return { ok:false, error:'Passwort muss mindestens 6 Zeichen lang sein.' };
+    }
+    const newUser = {
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+      birthday: data.birthday || '',
+      stylePref: data.stylePref || '',
+      joinedAt: Date.now(),
+      photo: '',
+      loyaltyPoints: 100,
+      tier: 'BRONZE',
+      upcoming: [],
+      history: [],
+      passport: [],
+      completedMatches: 0,
+      lastMatch: null,
+    };
+    newUser.tier = tierFromPoints(newUser.loyaltyPoints);
+    users.push(newUser);
+    saveUsers(users);
+    saveSession(newUser.email);
+    setUser(newUser);
+    return { ok:true };
+  }
+
+  function login(email, password){
+    const u = loadUsers().find(x => x.email.toLowerCase() === email.trim().toLowerCase() && x.password === password);
+    if(!u) return { ok:false, error:'E-Mail oder Passwort stimmt nicht.' };
+    saveSession(u.email);
+    setUser(u);
+    return { ok:true };
+  }
+
+  function logout(){
+    clearSession();
+    setUser(null);
+  }
+
+  function updateUser(updates){
+    if(!user) return;
+    const users = loadUsers();
+    const idx = users.findIndex(x => x.email === user.email);
+    if(idx === -1) return;
+    const updated = { ...users[idx], ...updates };
+    updated.tier = tierFromPoints(updated.loyaltyPoints);
+    users[idx] = updated;
+    saveUsers(users);
+    setUser(updated);
+  }
+
+  function addPoints(amount, reason){
+    if(!user) return;
+    updateUser({ loyaltyPoints: user.loyaltyPoints + amount });
+  }
+
+  return { user, loading, register, login, logout, updateUser, addPoints };
+}
+
+/* ============================================================
    APP SHELL
    ============================================================ */
 function App(){
   const [view, setView] = useState('home');
   const [role, setRole] = useState('CUSTOMER'); // CUSTOMER, STAFF, ADMIN
   const [bookingDraft, setBookingDraft] = useState(null);
+  const auth = useAuth();
+
+  // Account-View braucht Login
+  const effectiveView = view==='account' && !auth.user ? 'login' : view;
 
   return (
     <div className="min-h-screen grain">
-      <Header view={view} setView={setView} role={role} setRole={setRole} />
+      <Header view={effectiveView} setView={setView} role={role} setRole={setRole} auth={auth} />
       <main className="pb-24">
-        {view==='home' && <Home setView={setView} />}
-        {view==='services' && <ServicesPage setView={setView} setBookingDraft={setBookingDraft} />}
-        {view==='booking' && <BookingWizard initial={bookingDraft} setView={setView} />}
-        {view==='team' && <TeamPage setView={setView} />}
-        {view==='match' && <BeautyMatch setView={setView} />}
-        {view==='account' && <AccountDashboard setView={setView} />}
-        {view==='journey' && <BeautyJourney setView={setView} />}
-        {view==='forms' && <FormsPage setView={setView} />}
-        {view==='staff-calendar' && <StaffCalendar />}
-        {view==='admin' && <AdminDashboard setView={setView} />}
-        {view==='admin-services' && <AdminServices setView={setView} />}
-        {view==='admin-treatwell' && <AdminTreatwell setView={setView} />}
+        {effectiveView==='home' && <Home setView={setView} />}
+        {effectiveView==='services' && <ServicesPage setView={setView} setBookingDraft={setBookingDraft} />}
+        {effectiveView==='booking' && <BookingWizard initial={bookingDraft} setView={setView} auth={auth} />}
+        {effectiveView==='team' && <TeamPage setView={setView} />}
+        {effectiveView==='match' && <BeautyMatch setView={setView} auth={auth} />}
+        {effectiveView==='account' && <AccountDashboard setView={setView} auth={auth} />}
+        {effectiveView==='login' && <LoginPage setView={setView} auth={auth} />}
+        {effectiveView==='register' && <RegisterPage setView={setView} auth={auth} />}
+        {effectiveView==='journey' && <BeautyJourney setView={setView} />}
+        {effectiveView==='forms' && <FormsPage setView={setView} />}
+        {effectiveView==='staff-calendar' && <StaffCalendar />}
+        {effectiveView==='admin' && <AdminDashboard setView={setView} />}
+        {effectiveView==='admin-services' && <AdminServices setView={setView} />}
+        {effectiveView==='admin-treatwell' && <AdminTreatwell setView={setView} />}
       </main>
       <Footer setView={setView} />
       <RoleSwitcher role={role} setRole={setRole} setView={setView} />
@@ -250,9 +360,106 @@ function App(){
 }
 
 /* ============================================================
+   AUTH UI (Login + Register)
+   ============================================================ */
+function FormField({ label, ...props }){
+  return (
+    <label className="block">
+      <span className="text-sm text-ink-700">{label}</span>
+      <input {...props}
+        className="w-full px-4 py-3 rounded-2xl border border-champagne-200 mt-1 focus:outline-none focus:border-ink-900 bg-white" />
+    </label>
+  );
+}
+
+function LoginPage({ setView, auth }){
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  function submit(e){
+    e.preventDefault();
+    const r = auth.login(email, password);
+    if(r.ok) setView('account');
+    else setError(r.error);
+  }
+
+  return (
+    <Section className="py-12 max-w-md mx-auto">
+      <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Mein Konto</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Anmelden</h1>
+      <Card className="p-8 mt-8">
+        <form onSubmit={submit} className="space-y-4">
+          <FormField label="E-Mail" type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email" />
+          <FormField label="Passwort" type="password" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password" />
+          {error && <div className="text-sm text-rose-600">{error}</div>}
+          <Button type="submit" className="w-full">Anmelden</Button>
+        </form>
+        <div className="text-sm text-ink-600 mt-6 text-center">
+          Noch kein Konto?{' '}
+          <button onClick={()=>setView('register')} className="underline text-ink-900">Jetzt registrieren</button>
+        </div>
+      </Card>
+      <div className="text-xs text-ink-600 mt-6 italic">
+        Hinweis: Dieser Prototyp speichert deine Daten nur lokal in deinem Browser.
+      </div>
+    </Section>
+  );
+}
+
+function RegisterPage({ setView, auth }){
+  const [form, setForm] = useState({ name:'', email:'', password:'', birthday:'', stylePref:'' });
+  const [error, setError] = useState('');
+  const upd = (k)=>(e)=>setForm({ ...form, [k]: e.target?.value ?? e });
+
+  function submit(e){
+    e.preventDefault();
+    const r = auth.register(form);
+    if(r.ok) setView('account');
+    else setError(r.error);
+  }
+
+  return (
+    <Section className="py-12 max-w-md mx-auto">
+      <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Mein Konto</div>
+      <h1 className="font-display text-5xl text-ink-900 mt-2">Registrieren</h1>
+      <p className="text-ink-700 mt-2 text-sm">Werde Teil von Feminity — sichere dir 100 Beauty Points als Willkommens-Bonus.</p>
+      <Card className="p-8 mt-8">
+        <form onSubmit={submit} className="space-y-4">
+          <FormField label="Name" type="text" value={form.name} onChange={upd('name')} required autoComplete="name" />
+          <FormField label="E-Mail" type="email" value={form.email} onChange={upd('email')} required autoComplete="email" />
+          <FormField label="Passwort (mind. 6 Zeichen)" type="password" value={form.password} onChange={upd('password')} required minLength={6} autoComplete="new-password" />
+          <FormField label="Geburtsdatum (optional, für Birthday-Bonus)" type="date" value={form.birthday} onChange={upd('birthday')} />
+          <label className="block">
+            <span className="text-sm text-ink-700">Style-Präferenz (optional)</span>
+            <select value={form.stylePref} onChange={upd('stylePref')}
+              className="w-full px-4 py-3 rounded-2xl border border-champagne-200 mt-1 focus:outline-none focus:border-ink-900 bg-white">
+              <option value="">— bitte wählen —</option>
+              <option>Elegant</option>
+              <option>Natürlich</option>
+              <option>Edgy</option>
+              <option>Feminin</option>
+              <option>Clean</option>
+              <option>Luxuriös</option>
+              <option>Low Maintenance</option>
+            </select>
+          </label>
+          {error && <div className="text-sm text-rose-600">{error}</div>}
+          <Button type="submit" className="w-full">Konto erstellen</Button>
+        </form>
+        <div className="text-sm text-ink-600 mt-6 text-center">
+          Schon registriert?{' '}
+          <button onClick={()=>setView('login')} className="underline text-ink-900">Anmelden</button>
+        </div>
+      </Card>
+    </Section>
+  );
+}
+
+/* ============================================================
    HEADER + FOOTER + ROLE SWITCHER
    ============================================================ */
-function Header({ view, setView, role }){
+function Header({ view, setView, role, auth }){
   const customerNav = [
     { k:'home', label:'Home' },
     { k:'services', label:'Leistungen' },
@@ -287,6 +494,17 @@ function Header({ view, setView, role }){
             ))}
           </nav>
           <div className="flex items-center gap-2 ml-auto">
+            {role==='CUSTOMER' && auth?.user && (
+              <button onClick={()=>setView('account')} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-champagne-100 hover:bg-champagne-200 transition">
+                {auth.user.photo
+                  ? <img src={auth.user.photo} alt={auth.user.name} className="w-7 h-7 rounded-full object-cover" />
+                  : <span className="w-7 h-7 rounded-full bg-ink-900 text-champagne-50 grid place-items-center text-xs font-medium">{auth.user.name[0]?.toUpperCase()}</span>}
+                <span className="hidden sm:inline text-sm">{auth.user.name.split(' ')[0]}</span>
+              </button>
+            )}
+            {role==='CUSTOMER' && !auth?.user && (
+              <Button onClick={()=>setView('login')} size="sm" variant="soft">Anmelden</Button>
+            )}
             {role==='CUSTOMER' && <Button onClick={()=>setView('services')} size="sm">Termin buchen</Button>}
           </div>
         </div>
@@ -1016,12 +1234,13 @@ function computeMatch(a){
   };
 }
 
-function BeautyMatch({ setView }){
+function BeautyMatch({ setView, auth }){
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [done, setDone] = useState(false);
   const [savedMatch, setSavedMatch] = useState(null);
   const [copyHint, setCopyHint] = useState('');
+  const [pointsEarned, setPointsEarned] = useState(0);
 
   // Load saved match on mount
   useEffect(()=>{
@@ -1063,6 +1282,16 @@ function BeautyMatch({ setView }){
       localStorage.setItem('feminity_match', JSON.stringify({ answers:allAnswers, lookName:m.lookName, ts:Date.now() }));
       setSavedMatch({ answers:allAnswers, lookName:m.lookName, ts:Date.now() });
     } catch {}
+    // Award 50 Beauty Points for completing the match (only first time per session)
+    if(auth?.user && pointsEarned === 0){
+      const m = computeMatch(allAnswers);
+      auth.updateUser({
+        loyaltyPoints: auth.user.loyaltyPoints + 50,
+        completedMatches: (auth.user.completedMatches || 0) + 1,
+        lastMatch: { lookName: m.lookName, ts: Date.now() },
+      });
+      setPointsEarned(50);
+    }
   }
   function reset(){
     setAnswers({}); setStep(0); setDone(false);
@@ -1162,6 +1391,19 @@ function BeautyMatch({ setView }){
         <Badge tone="rose">{r.matchType.label}</Badge>
       </div>
 
+      {pointsEarned > 0 && (
+        <Card className="p-4 mt-6 bg-emerald-50 border-emerald-200 flex items-center justify-between gap-3">
+          <div className="text-sm text-emerald-800"><strong>+{pointsEarned} Beauty Points</strong> — Match abgeschlossen, Bonus auf deinem Konto.</div>
+          <Button size="sm" variant="ghost" onClick={()=>setView('account')}>Konto ansehen</Button>
+        </Card>
+      )}
+      {!auth?.user && (
+        <Card className="p-4 mt-6 bg-champagne-50 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-sm text-ink-700">Registriere dich und erhalte <strong>+50 Beauty Points</strong> für dein Match.</div>
+          <Button size="sm" variant="soft" onClick={()=>setView('register')}>Jetzt registrieren</Button>
+        </Card>
+      )}
+
       <div className="grid md:grid-cols-3 gap-5 mt-8">
         {/* Treatments */}
         <Card className="p-6 md:col-span-2">
@@ -1247,34 +1489,102 @@ function BeautyMatch({ setView }){
 /* ============================================================
    ACCOUNT DASHBOARD
    ============================================================ */
-function AccountDashboard({ setView }){
+function AccountDashboard({ setView, auth }){
+  const u = auth?.user;
+  if(!u) return null; // App routes to login when no user
+  const photoInputRef = useRef(null);
+  const [photoError, setPhotoError] = useState('');
+  const next = nextTier(u.loyaltyPoints);
+  const tierLabel = TIER_THRESHOLDS.find(t=>t.tier===u.tier)?.label || u.tier;
+
+  function handlePhotoChange(e){
+    const file = e.target.files?.[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ setPhotoError('Bitte eine Bilddatei wählen.'); return; }
+    if(file.size > 2_000_000){ setPhotoError('Maximal 2 MB. Bitte komprimiere das Foto.'); return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      auth.updateUser({ photo: reader.result });
+      setPhotoError('');
+    };
+    reader.readAsDataURL(file);
+  }
+  function removePhoto(){ auth.updateUser({ photo: '' }); }
+
   return (
     <Section className="py-12">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Mein Konto</div>
-          <h1 className="font-display text-5xl text-ink-900 mt-2">Willkommen, {CUSTOMER.name.split(' ')[0]}</h1>
+      {/* Profil-Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            {u.photo
+              ? <img src={u.photo} alt={u.name} className="w-20 h-20 rounded-full object-cover ring-2 ring-champagne-200" />
+              : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-200 to-champagne-300 grid place-items-center font-display text-3xl text-ink-700">{u.name[0]?.toUpperCase()}</div>}
+            <button onClick={()=>photoInputRef.current?.click()} className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-ink-900 text-champagne-50 grid place-items-center text-sm hover:bg-ink-800" title="Foto hochladen">📷</button>
+            <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Mein Konto</div>
+            <h1 className="font-display text-4xl md:text-5xl text-ink-900 mt-1">Willkommen, {u.name.split(' ')[0]}</h1>
+            {u.photo && <button onClick={removePhoto} className="text-xs text-ink-600 underline mt-1">Foto entfernen</button>}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Badge tone="gold">{CUSTOMER.tier}</Badge>
-          <Badge>{CUSTOMER.loyaltyPoints} Beauty Points</Badge>
+        <div className="flex gap-2 items-center">
+          <Badge tone="gold">{tierLabel}</Badge>
+          <Badge>{u.loyaltyPoints} Beauty Points</Badge>
+          <Button size="sm" variant="ghost" onClick={()=>{ auth.logout(); setView('home'); }}>Logout</Button>
         </div>
       </div>
+      {photoError && <div className="text-sm text-rose-600 mt-3">{photoError}</div>}
 
-      <div className="grid md:grid-cols-3 gap-5 mt-8">
+      {/* Tier-Progress */}
+      <Card className="p-6 mt-6 bg-ink-900 text-champagne-50 border-ink-900">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-rose-300">Status</div>
+            <div className="font-display text-3xl mt-1">{tierLabel}</div>
+            {next
+              ? <div className="text-sm text-champagne-100 mt-2">Noch <strong>{next.points - u.loyaltyPoints}</strong> Beauty Points bis <strong>{next.label}</strong>.</div>
+              : <div className="text-sm text-champagne-100 mt-2">Du hast den höchsten Status erreicht. ✨</div>}
+          </div>
+          <div className="text-right">
+            <div className="font-display text-5xl">{u.loyaltyPoints}</div>
+            <div className="text-xs text-champagne-100">Beauty Points</div>
+          </div>
+        </div>
+        {next && (
+          <div className="h-2 bg-ink-700 rounded-full mt-4 overflow-hidden">
+            <div className="h-full bg-rose-400" style={{width:`${Math.min(100, (u.loyaltyPoints/next.points)*100)}%`}}></div>
+          </div>
+        )}
+        <div className="grid sm:grid-cols-3 gap-3 mt-5 text-sm">
+          <div className="p-3 rounded-xl bg-ink-800"><div className="text-rose-300 text-xs">Beautymatch</div><div>+50 Points</div></div>
+          <div className="p-3 rounded-xl bg-ink-800"><div className="text-rose-300 text-xs">Buchung</div><div>+200 Points</div></div>
+          <div className="p-3 rounded-xl bg-ink-800"><div className="text-rose-300 text-xs">Geburtstag</div><div>+50 Points</div></div>
+        </div>
+      </Card>
+
+      {/* Nächster Termin & Beauty Passport */}
+      <div className="grid md:grid-cols-3 gap-5 mt-5">
         <Card className="p-6 md:col-span-2">
           <h3 className="font-display text-2xl">Nächster Termin</h3>
-          {CUSTOMER.upcoming.map(u=>(
-            <div key={u.id} className="mt-4 p-5 rounded-2xl bg-champagne-50">
+          {u.upcoming.length === 0 && (
+            <div className="mt-4 p-5 rounded-2xl bg-champagne-50 text-center">
+              <div className="text-ink-700">Du hast noch keinen Termin gebucht.</div>
+              <Button size="sm" className="mt-3" onClick={()=>setView('services')}>Termin buchen</Button>
+            </div>
+          )}
+          {u.upcoming.map((up,i)=>(
+            <div key={i} className="mt-4 p-5 rounded-2xl bg-champagne-50">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-lg">{u.service}</div>
-                  <div className="text-sm text-ink-700 mt-1">bei {u.staff}</div>
+                  <div className="font-medium text-lg">{up.service}</div>
+                  <div className="text-sm text-ink-700 mt-1">bei {up.staff}</div>
                 </div>
-                <Badge tone="success">{u.formStatus==='COMPLETE'?'bereit':'Aufklärung fehlt'}</Badge>
+                <Badge tone="success">{up.formStatus==='COMPLETE'?'bereit':'Aufklärung fehlt'}</Badge>
               </div>
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-champagne-200">
-                <div className="text-sm">{u.date} um {u.time}</div>
+                <div className="text-sm">{up.date} um {up.time}</div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="soft">Verschieben</Button>
                   <Button size="sm" variant="ghost">Stornieren</Button>
@@ -1283,37 +1593,41 @@ function AccountDashboard({ setView }){
             </div>
           ))}
         </Card>
-        <Card className="p-6 bg-ink-900 text-champagne-50 border-ink-900">
-          <div className="text-xs uppercase tracking-widest text-rose-300">Beauty Passport</div>
+        <Card className="p-6">
+          <div className="text-xs uppercase tracking-widest text-rose-500">Beauty Passport</div>
           <h3 className="font-display text-2xl mt-2">Deine Journey</h3>
-          <div className="font-display text-5xl mt-4">{CUSTOMER.passport.length}</div>
-          <div className="text-sm text-champagne-100">dokumentierte Treatments</div>
-          <Button variant="rose" size="sm" className="mt-5" onClick={()=>setView('journey')}>Ansehen</Button>
+          <div className="font-display text-5xl mt-4">{u.passport.length}</div>
+          <div className="text-sm text-ink-600">dokumentierte Treatments</div>
+          {u.lastMatch && <div className="mt-3 text-sm">Letztes Beautymatch: <strong>{u.lastMatch.lookName}</strong></div>}
+          <Button variant="soft" size="sm" className="mt-5" onClick={()=>setView('journey')}>Ansehen</Button>
         </Card>
       </div>
 
+      {/* Schnellaktionen + Historie */}
       <div className="grid md:grid-cols-3 gap-5 mt-5">
         <Card className="p-6">
           <h3 className="font-display text-xl">Schnellaktionen</h3>
           <div className="space-y-2 mt-4">
             <Button variant="soft" className="w-full justify-start" onClick={()=>setView('services')}>Neuen Termin buchen</Button>
+            <Button variant="soft" className="w-full justify-start" onClick={()=>setView('match')}>Beautymatch starten</Button>
             <Button variant="soft" className="w-full justify-start" onClick={()=>setView('forms')}>Aufklärungsbögen</Button>
-            <Button variant="soft" className="w-full justify-start" onClick={()=>setView('match')}>Beauty Match</Button>
           </div>
         </Card>
         <Card className="p-6 md:col-span-2">
           <h3 className="font-display text-xl">Termin-Historie</h3>
-          <div className="mt-4 divide-y divide-champagne-100">
-            {CUSTOMER.history.map((h,i)=>(
-              <div key={i} className="py-3 flex justify-between text-sm">
-                <div>
-                  <div className="font-medium">{h.service}</div>
-                  <div className="text-ink-600">{h.staff} · {h.date}</div>
-                </div>
-                <div className="font-medium">{h.price}</div>
-              </div>
-            ))}
-          </div>
+          {u.history.length === 0
+            ? <div className="text-ink-600 text-sm mt-4">Noch keine Termine. Beim ersten Besuch füllt sich diese Liste automatisch.</div>
+            : <div className="mt-4 divide-y divide-champagne-100">
+                {u.history.map((h,i)=>(
+                  <div key={i} className="py-3 flex justify-between text-sm">
+                    <div>
+                      <div className="font-medium">{h.service}</div>
+                      <div className="text-ink-600">{h.staff} · {h.date}</div>
+                    </div>
+                    <div className="font-medium">{h.price}</div>
+                  </div>
+                ))}
+              </div>}
         </Card>
       </div>
     </Section>
@@ -1324,28 +1638,37 @@ function AccountDashboard({ setView }){
    BEAUTY JOURNEY
    ============================================================ */
 function BeautyJourney({ setView }){
+  const u = loadUsers().find(x => x.email === loadSession()) || null;
+  const passport = u?.passport || [];
   return (
     <Section className="py-12">
       <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Beauty Passport</div>
       <h1 className="font-display text-5xl text-ink-900 mt-2">Deine Beauty Journey</h1>
 
-      <div className="mt-10 relative">
-        <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-champagne-200"></div>
-        <div className="space-y-6">
-          {CUSTOMER.passport.map((p,i)=>(
-            <div key={i} className="relative pl-12">
-              <div className="absolute left-2 top-3 w-5 h-5 rounded-full bg-rose-400 border-4 border-champagne-50"></div>
-              <Card className="p-6">
-                <div className="text-xs uppercase tracking-widest text-ink-600">{p.date}</div>
-                <h3 className="font-display text-2xl mt-1">{p.title}</h3>
-                <p className="text-sm text-ink-700 mt-3">{p.notes}</p>
-                {p.followUp && <div className="mt-4 p-3 rounded-xl bg-champagne-50 text-sm"><strong>Folge-Empfehlung:</strong> {p.followUp}</div>}
-              </Card>
+      {passport.length === 0
+        ? <Card className="p-8 mt-8 text-center">
+            <div className="text-ink-700">Deine Journey ist noch leer.</div>
+            <div className="text-sm text-ink-600 mt-2">Nach jedem Termin wird hier ein Eintrag dokumentiert — Behandlung, Notizen, Pflegeempfehlung.</div>
+            <Button className="mt-5" onClick={()=>setView('services')}>Erstes Treatment buchen</Button>
+          </Card>
+        : <div className="mt-10 relative">
+            <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-champagne-200"></div>
+            <div className="space-y-6">
+              {passport.map((p,i)=>(
+                <div key={i} className="relative pl-12">
+                  <div className="absolute left-2 top-3 w-5 h-5 rounded-full bg-rose-400 border-4 border-champagne-50"></div>
+                  <Card className="p-6">
+                    <div className="text-xs uppercase tracking-widest text-ink-600">{p.date}</div>
+                    <h3 className="font-display text-2xl mt-1">{p.title}</h3>
+                    <p className="text-sm text-ink-700 mt-3">{p.notes}</p>
+                    {p.followUp && <div className="mt-4 p-3 rounded-xl bg-champagne-50 text-sm"><strong>Folge-Empfehlung:</strong> {p.followUp}</div>}
+                  </Card>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-      <Button className="mt-8" onClick={()=>setView('account')}>Zurück zum Konto</Button>
+          </div>
+      }
+      <Button variant="soft" className="mt-8" onClick={()=>setView('account')}>Zurück zum Konto</Button>
     </Section>
   );
 }
