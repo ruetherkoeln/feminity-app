@@ -58,6 +58,11 @@ const SERVICES = [
   { id:'svc-nad', cat:'Beauty · Beauty Drips', name:'NAD+ Beauty Drip', desc:'Infusionstherapie zur zellulären Regeneration.', duration:120, price:39000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'iv_consent', online:false, area:'BEAUTY' },
   { id:'svc-skin', cat:'Beauty · Skin', name:'Signature Skin Treatment', desc:'Individuelle Hautbehandlung mit Tiefenreinigung und Pflege.', duration:75, price:16500, fromPrice:false, staff:['jule'], signature:true, requiresForm:false, area:'BEAUTY' },
   { id:'svc-consult', cat:'Beratung', name:'Beauty-Beratung', desc:'Individuelle 30-Minuten-Beratung mit Hautanalyse.', duration:30, price:4500, fromPrice:false, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-glossing', cat:'Hair · Glossing', name:'Glossing', desc:'Glanztönung für sichtbar gepflegtes, glänzendes Haar — auffrischend und schonend.', duration:45, price:7500, fromPrice:true, staff:['nicky','zahra'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-treatment', cat:'Hair · Treatment', name:'Hair Treatment Intensiv', desc:'Tiefenpflege für trockenes, brüchiges oder strapaziertes Haar.', duration:45, price:6500, fromPrice:true, staff:['nicky','esra','zahra'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-extensions', cat:'Hair · Extensions', name:'Tape Extensions', desc:'Premium Tape Extensions inkl. Beratung, Einarbeitung und Styling.', duration:180, price:59000, fromPrice:true, staff:['zahra'], signature:true, requiresForm:true, formKey:'extensions_consent', area:'HAIR' },
+  { id:'svc-brows', cat:'Beauty · Brows', name:'Brow Styling', desc:'Augenbrauen formen, färben und stylen für den perfekten Rahmen.', duration:30, price:4500, fromPrice:true, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-lash', cat:'Beauty · Lash', name:'Lash Lift', desc:'Wimpernlifting mit Tönung — natürlich geschwungene Wimpern für 6–8 Wochen.', duration:60, price:8500, fromPrice:true, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
 ];
 
 const STAFF = [
@@ -66,6 +71,81 @@ const STAFF = [
   { id:'esra', name:'Esra', role:'Friseurin', lead:'Hair', tag:'Hair Stylist', specs:['Modell-Schnitte','Föhnen','Individueller Stil','Empathische Beratung'], statement:'Ich höre genau zu — und finde den Look, der wirklich zu dir passt.', languages:['Deutsch','English','Türkçe'], years:3, photo:'' },
   { id:'zahra', name:'Zahra', role:'Master-Stylistin · Extensions-Expertin', lead:'Hair', tag:'Master Stylist', specs:['Alle Schnitte','Colorationen','Extensions','Extensions-Styling','Alle Haartypen'], statement:'Jeder Haartyp hat seine Sprache — ich übersetze sie in den Look, den du dir wünschst.', languages:['Deutsch','English','فارسی'], years:15, photo:'' },
 ];
+
+const HOME_ROUTINES = {
+  hair_repair: {
+    title:'Repair & Shine — Home-Routine',
+    items:[
+      { name:'Kérastase Bain Force Architecte', step:'Shampoo', desc:'Stärkt geschwächtes Haar' },
+      { name:'Kérastase Masque Force Architecte', step:'Maske', desc:'1× pro Woche, 5 Min einwirken' },
+      { name:'Kérastase Ciment Thermique', step:'Hitzeschutz', desc:'Vor jedem Föhnen' },
+      { name:'Kérastase Sérum Thérapiste', step:'Leave-in', desc:'In die Spitzen einarbeiten' },
+      { name:'Kérastase Elixir Ultime', step:'Glanzöl', desc:'Finishing für seidigen Glanz' },
+    ]
+  },
+  hair_color: {
+    title:'Color Care — Home-Routine',
+    items:[
+      { name:'Kérastase Bain Chroma Respect', step:'Shampoo', desc:'Schützt die Farbintensität' },
+      { name:'Kérastase Masque Chroma Filler', step:'Maske', desc:'Auffrischen zwischen den Terminen' },
+      { name:'Kérastase Glossing Drops', step:'Glanzbooster', desc:'Sofortiger Spiegelglanz' },
+      { name:'Kérastase Hitzeschutz Color', step:'Hitzeschutz', desc:'Schont Pigmente beim Stylen' },
+      { name:'Seidenkissen', step:'Tool', desc:'Verhindert Frizz und Farbverlust nachts' },
+    ]
+  },
+  hair_curl: {
+    title:'Curl Couture — Home-Routine',
+    items:[
+      { name:'Kérastase Curl Manifesto Bain', step:'Shampoo', desc:'Sulfatfrei, definiert Locken' },
+      { name:'Kérastase Curl Manifesto Masque', step:'Maske', desc:'Feuchtigkeit für sprungkräftige Locken' },
+      { name:'Kérastase Curl Manifesto Crème', step:'Leave-in', desc:'Im nassen Haar einkneten' },
+      { name:'Diffusor-Aufsatz', step:'Tool', desc:'Föhnen ohne Frizz' },
+      { name:'Mikrofaser-Tuch', step:'Tool', desc:'Plopping-Methode für Definition' },
+    ]
+  },
+  hair_minimal: {
+    title:'Daily Shine — Home-Routine',
+    items:[
+      { name:'Kérastase Bain Hydra-Apaisant', step:'Shampoo', desc:'Sanft, für tägliche Pflege' },
+      { name:'Kérastase Spray à Porter', step:'Styling', desc:'Texturspray für mühelose Looks' },
+      { name:'Hitzeschutz', step:'Hitzeschutz', desc:'Für Fön und Glätteisen' },
+      { name:'Trockenshampoo', step:'Refresh', desc:'Für den 2.–3. Tag' },
+      { name:'Holzkamm', step:'Tool', desc:'Antistatisch, schont das Haar' },
+    ]
+  },
+  beauty_glow: {
+    title:'Glow Boost — Home-Routine',
+    items:[
+      { name:'Sanfter Cleanser', step:'Reinigung', desc:'Morgens & abends' },
+      { name:'Vitamin-C-Serum', step:'Wirkstoff', desc:'Morgens, für strahlende Haut' },
+      { name:'Hyaluron-Feuchtigkeitscreme', step:'Pflege', desc:'Polstert die Haut auf' },
+      { name:'SPF 50', step:'Sonnenschutz', desc:'Jeden Morgen, ganzjährig' },
+      { name:'Augencreme', step:'Spezialpflege', desc:'Gegen Augenringe & Linien' },
+    ]
+  },
+  beauty_repair: {
+    title:'Skin Reset — Home-Routine',
+    items:[
+      { name:'Milder Reinigungsschaum', step:'Reinigung', desc:'pH-balanciert' },
+      { name:'Niacinamid-Serum', step:'Wirkstoff', desc:'Reduziert Unreinheiten & Rötungen' },
+      { name:'Retinol (low %)', step:'Anti-Aging', desc:'Abends, langsam einschleichen' },
+      { name:'Reichhaltige Nachtcreme', step:'Pflege', desc:'Regeneration über Nacht' },
+      { name:'SPF 50', step:'Sonnenschutz', desc:'Pflicht bei Retinol-Pflege' },
+    ]
+  },
+};
+
+const LOOK_NAMES = {
+  daily_natural:    'Daily Glow',
+  daily_business:   'Clean Business Look',
+  signature_glam:   'Soft Glam + Healthy Hair Reset',
+  signature_event:  'Event Ready — Signature Look',
+  transform_full:   'Full Transformation',
+  transform_color:  'Color Transformation + Care Reset',
+  repair_focus:     'Repair & Shine',
+  glow_boost:       'Glow Boost',
+  bridal:           'Bridal Signature',
+};
 
 const TODAY = new Date(2026, 3, 28);
 const MOCK_BOOKINGS = [
@@ -685,73 +765,431 @@ function TeamPage({ setView }){
 }
 
 /* ============================================================
-   BEAUTY MATCH (Quiz)
+   BEAUTY MATCH (Quiz V1)
    ============================================================ */
+const MATCH_QUESTIONS = [
+  // Look-Match
+  { id:'L1', section:'Look', q:'Was ist dein Ziel?', opts:[
+    'Natürlich frischer aussehen','Glamour','Business Look','Event / Hochzeit',
+    'Haarrettung','Anti-Aging','Hautbild verbessern'
+  ]},
+  { id:'L2', section:'Look', q:'Wie viel Veränderung möchtest du?', opts:[
+    'Minimal','Sichtbar','Mutig','Komplette Transformation'
+  ]},
+  { id:'L3', section:'Look', q:'Was beschreibt dich am besten?', multi:true, opts:[
+    'Elegant','Natürlich','Edgy','Feminin','Clean','Luxuriös','Low Maintenance'
+  ]},
+  // Hair-Match
+  { id:'H1', section:'Hair', q:'Wie lang ist dein Haar?', opts:[
+    'Kurz','Schulterlang','Lang','Sehr lang'
+  ]},
+  { id:'H2', section:'Hair', q:'Welche Struktur hat dein Haar?', opts:[
+    'Glatt','Wellig','Lockig','Kraus','African Hair'
+  ]},
+  { id:'H3', section:'Hair', q:'Wie ist der Zustand deines Haars?', multi:true, opts:[
+    'Gesund','Trocken','Brüchig','Frizz','Spliss','Haarausfallgefühl'
+  ]},
+  { id:'H4', section:'Hair', q:'Aktuelle Farbe / Behandlung', opts:[
+    'Naturhaar','Coloriert','Blondiert','Highlights','Extensions','Möchte ich nicht sagen'
+  ]},
+  { id:'H5', section:'Hair', q:'Wie viel Pflegeaufwand zu Hause magst du?', opts:[
+    'Minimal (5 min)','Moderat (10–15 min)','Aufwändig (>20 min)','Lieber im Salon'
+  ]},
+  { id:'H6', section:'Hair', q:'Was wünschst du dir konkret?', multi:true, opts:[
+    'Schnitt','Farbe','Pflege / Treatment','Styling','Glossing','Extensions','Keratin'
+  ]},
+  // Beauty-Match
+  { id:'B1', section:'Beauty', q:'Was stört dich aktuell an deiner Haut?', multi:true, opts:[
+    'Müde Haut','Unreinheiten','Trockenheit','Pigmentflecken','Falten',
+    'Augenringe','Glow fehlt','Brows','Lashes'
+  ]},
+  { id:'B2', section:'Beauty', q:'Wann willst du gut aussehen?', opts:[
+    'Heute','Diese Woche','In 4 Wochen','Vor einem Event','Dauerhaft'
+  ]},
+  { id:'B3', section:'Beauty', q:'Wie ist dein Hauttyp?', opts:[
+    'Normal','Trocken','Mischhaut','Sensibel','Reife Haut'
+  ]},
+  // Frame
+  { id:'F1', section:'Rahmen', q:'Welches Budget hast du für diesen Termin?', opts:[
+    'bis 100 €','100–250 €','250–500 €','offen'
+  ]},
+  { id:'F2', section:'Rahmen', q:'Wie viel Zeit kannst du dir nehmen?', opts:[
+    'unter 1 h','1–2 h','2–4 h','flexibel'
+  ]},
+];
+
+const MATCH_TYPES = {
+  daily:       { key:'daily',       label:'Daily Beauty Match',       sub:'Alltagstauglich, gepflegt, natürlich' },
+  signature:   { key:'signature',   label:'Signature Feminity Match', sub:'Sichtbar hochwertig — bewusst gewählt' },
+  transform:   { key:'transform',   label:'Transformation Match',     sub:'Größere Veränderung, neuer Look' },
+};
+
+function computeMatch(a){
+  // Match-Type aus L2
+  let mt = MATCH_TYPES.daily;
+  if(a.L2==='Sichtbar' || a.L2==='Mutig') mt = MATCH_TYPES.signature;
+  if(a.L2==='Komplette Transformation') mt = MATCH_TYPES.transform;
+
+  // Look-Name aus L1 + Match-Type
+  let lookKey = 'daily_natural';
+  if(a.L1==='Glamour') lookKey = 'signature_glam';
+  else if(a.L1==='Business Look') lookKey = 'daily_business';
+  else if(a.L1==='Event / Hochzeit') lookKey = mt===MATCH_TYPES.transform ? 'bridal' : 'signature_event';
+  else if(a.L1==='Haarrettung') lookKey = 'repair_focus';
+  else if(a.L1==='Anti-Aging' || a.L1==='Hautbild verbessern') lookKey = 'glow_boost';
+  else if(mt===MATCH_TYPES.transform) lookKey = a.H4==='Coloriert'||a.H4==='Blondiert'?'transform_color':'transform_full';
+
+  // Score services across answers
+  const wishes = a.H6 || [];
+  const concerns = a.B1 || [];
+  const traits = a.L3 || [];
+  const conditions = a.H3 || [];
+
+  const score = (s)=>{
+    let p = 0;
+    // L1 goal
+    if(a.L1==='Haarrettung' && (s.id==='svc-treatment'||s.id==='svc-curl'||s.id==='svc-glossing')) p += 30;
+    if(a.L1==='Glamour' && (s.id==='svc-makeup'||s.id==='svc-balayage'||s.id==='svc-lash')) p += 25;
+    if(a.L1==='Event / Hochzeit' && (s.id==='svc-makeup'||s.id==='svc-balayage'||s.id==='svc-brows'||s.id==='svc-lash')) p += 25;
+    if(a.L1==='Anti-Aging' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-nad')) p += 30;
+    if(a.L1==='Hautbild verbessern' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-consult')) p += 30;
+    if(a.L1==='Business Look' && (s.id==='svc-cut-classic'||s.id==='svc-glossing'||s.id==='svc-brows')) p += 20;
+    if(a.L1==='Natürlich frischer aussehen' && (s.id==='svc-glossing'||s.id==='svc-skin'||s.id==='svc-brows'||s.id==='svc-treatment')) p += 20;
+
+    // Hair wishes
+    if(wishes.includes('Schnitt') && s.id==='svc-cut-classic') p += 25;
+    if(wishes.includes('Farbe') && (s.id==='svc-color'||s.id==='svc-balayage')) p += 25;
+    if(wishes.includes('Pflege / Treatment') && s.id==='svc-treatment') p += 30;
+    if(wishes.includes('Styling') && (s.id==='svc-cut-classic'||s.id==='svc-makeup')) p += 10;
+    if(wishes.includes('Glossing') && s.id==='svc-glossing') p += 35;
+    if(wishes.includes('Extensions') && s.id==='svc-extensions') p += 40;
+
+    // Hair condition
+    if(conditions.includes('Trocken')||conditions.includes('Brüchig')||conditions.includes('Spliss')){
+      if(s.id==='svc-treatment') p += 25;
+      if(s.id==='svc-glossing') p += 10;
+    }
+    if(a.H4==='Blondiert' && (s.id==='svc-treatment'||s.id==='svc-glossing')) p += 15;
+
+    // Beauty concerns
+    if(concerns.includes('Glow fehlt')||concerns.includes('Müde Haut')){ if(s.id==='svc-skin'||s.id==='svc-nad') p += 25; }
+    if(concerns.includes('Unreinheiten')||concerns.includes('Pigmentflecken')){ if(s.id==='svc-greenpeel') p += 30; }
+    if(concerns.includes('Falten')||concerns.includes('Augenringe')){ if(s.id==='svc-skin'||s.id==='svc-nad') p += 20; }
+    if(concerns.includes('Brows')){ if(s.id==='svc-brows'||s.id==='svc-pmu') p += 35; }
+    if(concerns.includes('Lashes')){ if(s.id==='svc-lash') p += 40; }
+
+    // Style traits
+    if(traits.includes('Luxuriös') && s.signature) p += 8;
+    if(traits.includes('Low Maintenance') && (s.id==='svc-glossing'||s.id==='svc-pmu'||s.id==='svc-lash')) p += 15;
+
+    // Time fit
+    if(a.F2==='unter 1 h' && s.duration<=60) p += 5;
+    if(a.F2==='1–2 h' && s.duration>60 && s.duration<=120) p += 5;
+    if(a.F2==='2–4 h' && s.duration>120 && s.duration<=240) p += 5;
+    if(a.F2==='flexibel') p += 3;
+
+    // Budget fit
+    if(a.F1==='bis 100 €' && s.price<=10000) p += 5;
+    if(a.F1==='100–250 €' && s.price>10000 && s.price<=25000) p += 5;
+    if(a.F1==='250–500 €' && s.price>25000 && s.price<=50000) p += 5;
+    if(a.F1==='offen') p += 3;
+
+    return p;
+  };
+
+  const ranked = SERVICES.map(s=>({ s, p:score(s) }))
+    .filter(x=>x.p>0).sort((x,y)=>y.p-x.p);
+  const maxP = ranked[0]?.p || 1;
+  const treatments = ranked.slice(0, mt===MATCH_TYPES.transform?5:4)
+    .map(x=>({ ...x.s, matchPct: Math.min(99, Math.round(40 + (x.p/maxP)*55)) }));
+
+  // Team-Match
+  const teamScore = (st)=>{
+    let p = 0;
+    const hairTreatments = treatments.filter(t=>t.area==='HAIR');
+    const beautyTreatments = treatments.filter(t=>t.area==='BEAUTY');
+    if(beautyTreatments.length && st.id==='jule') p += 50;
+    // Hair: pick based on H4/H6/L1
+    if(hairTreatments.length){
+      if(st.id==='nicky') p += 30;
+      if((a.H4==='Blondiert'||wishes.includes('Farbe')||a.L1==='Glamour') && st.id==='nicky') p += 20;
+      if(wishes.includes('Extensions') && st.id==='zahra') p += 50;
+      if(a.H2==='Kraus'||a.H2==='African Hair'){ if(st.id==='nicky'||st.id==='zahra') p += 15; }
+      if(wishes.includes('Schnitt') && hairTreatments.length===1 && a.L2==='Minimal'){ if(st.id==='esra') p += 25; }
+      if(a.H4==='Coloriert' && st.id==='zahra') p += 10;
+    }
+    return p;
+  };
+  const teamRanked = STAFF.map(st=>({ st, p:teamScore(st) }))
+    .filter(x=>x.p>0).sort((x,y)=>y.p-x.p).map(x=>x.st);
+  const team = teamRanked.slice(0,2);
+
+  // Why-Sentences
+  const teamReason = (st)=>{
+    const reasons = [];
+    if(st.id==='jule') reasons.push('für deine Beauty-Themen, die individuelle Beratung verlangen');
+    if(st.id==='nicky') reasons.push('weil du eine sichtbare, hochwertige Veränderung suchst');
+    if(st.id==='zahra' && wishes.includes('Extensions')) reasons.push('weil sie Extensions-Expertin ist');
+    if(st.id==='zahra' && (a.H2==='Kraus'||a.H2==='African Hair')) reasons.push('weil sie alle Haartypen tief versteht');
+    if(st.id==='zahra' && reasons.length===0) reasons.push('weil sie alle Schnitte und Colorationen souverän umsetzt');
+    if(st.id==='esra') reasons.push('weil sie sehr einfühlsam an deinen individuellen Stil herangeht');
+    return reasons[0] || 'weil ihre Specialties zu deinem Match passen';
+  };
+
+  // Home-Routine
+  let homeKey = 'beauty_glow';
+  const isBeautyHeavy = treatments.filter(t=>t.area==='BEAUTY').length >= treatments.filter(t=>t.area==='HAIR').length;
+  if(isBeautyHeavy){
+    homeKey = (a.B3==='Reife Haut'||concerns.includes('Falten')||concerns.includes('Augenringe')) ? 'beauty_repair' : 'beauty_glow';
+  } else {
+    if(a.H2==='Lockig'||a.H2==='Kraus'||a.H2==='African Hair') homeKey = 'hair_curl';
+    else if(a.H4==='Coloriert'||a.H4==='Blondiert'||a.H4==='Highlights') homeKey = 'hair_color';
+    else if(conditions.includes('Trocken')||conditions.includes('Brüchig')||conditions.includes('Spliss')) homeKey = 'hair_repair';
+    else homeKey = 'hair_minimal';
+  }
+  const routine = HOME_ROUTINES[homeKey];
+
+  // Totals
+  const totalDuration = treatments.reduce((sum,t)=>sum+t.duration, 0);
+  const totalPrice = treatments.reduce((sum,t)=>sum+t.price, 0);
+
+  return {
+    matchType: mt,
+    lookName: LOOK_NAMES[lookKey],
+    treatments,
+    team,
+    teamReason,
+    routine,
+    totalDuration,
+    totalPrice,
+    answers: a,
+  };
+}
+
 function BeautyMatch({ setView }){
-  const QUESTIONS = [
-    { q:'Was steht im Vordergrund?', opts:['Hair','Skin','Make-up','Komplettverwandlung'] },
-    { q:'Wie viel Zeit hast du?', opts:['unter 1 h','1–2 h','2–4 h','flexibel'] },
-    { q:'Anlass?', opts:['Alltag','Event / Hochzeit','Selbstpflege','Beratung'] },
-    { q:'Hauttyp?', opts:['trocken','normal','Mischhaut','sensibel'] },
-    { q:'Budget?', opts:['bis 100 €','100–250 €','250–500 €','offen'] },
-    { q:'Wie oft kommst du zu uns?', opts:['Erstmals','selten','regelmäßig','VIP'] },
-  ];
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
-  const done = step===QUESTIONS.length;
+  const [done, setDone] = useState(false);
+  const [savedMatch, setSavedMatch] = useState(null);
+  const [copyHint, setCopyHint] = useState('');
 
-  const recommendation = useMemo(()=>{
-    const a = answers[0];
-    if(a==='Hair') return SERVICES.filter(s=>s.area==='HAIR').slice(0,3);
-    if(a==='Skin') return [SERVICES.find(s=>s.id==='svc-greenpeel'), SERVICES.find(s=>s.id==='svc-skin'), SERVICES.find(s=>s.id==='svc-consult')];
-    if(a==='Make-up') return [SERVICES.find(s=>s.id==='svc-makeup'), SERVICES.find(s=>s.id==='svc-pmu'), SERVICES.find(s=>s.id==='svc-consult')];
-    return SERVICES.filter(s=>s.signature).slice(0,3);
-  },[answers]);
+  // Load saved match on mount
+  useEffect(()=>{
+    try {
+      const raw = localStorage.getItem('feminity_match');
+      if(raw) setSavedMatch(JSON.parse(raw));
+    } catch {}
+  },[]);
 
-  return (
-    <Section className="py-12 max-w-3xl mx-auto">
-      <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Beauty Match</div>
-      <h1 className="font-display text-5xl text-ink-900 mt-2">Finde dein Treatment</h1>
+  const totalQuestions = MATCH_QUESTIONS.length;
+  const currentQ = MATCH_QUESTIONS[step];
+  const sectionIdx = ['Look','Hair','Beauty','Rahmen'].indexOf(currentQ?.section);
+  const progress = Math.round(((step) / totalQuestions) * 100);
 
-      {!done && (
+  const result = useMemo(()=> done ? computeMatch(answers) : null, [done, answers]);
+
+  function selectSingle(opt){
+    const next = { ...answers, [currentQ.id]: opt };
+    setAnswers(next);
+    if(step+1 >= totalQuestions){
+      finalize(next);
+    } else {
+      setStep(step+1);
+    }
+  }
+  function toggleMulti(opt){
+    const cur = Array.isArray(answers[currentQ.id]) ? answers[currentQ.id] : [];
+    const next = cur.includes(opt) ? cur.filter(x=>x!==opt) : [...cur, opt];
+    setAnswers({ ...answers, [currentQ.id]: next });
+  }
+  function nextMulti(){
+    if(step+1 >= totalQuestions) finalize(answers);
+    else setStep(step+1);
+  }
+  function finalize(allAnswers){
+    setDone(true);
+    try {
+      const m = computeMatch(allAnswers);
+      localStorage.setItem('feminity_match', JSON.stringify({ answers:allAnswers, lookName:m.lookName, ts:Date.now() }));
+      setSavedMatch({ answers:allAnswers, lookName:m.lookName, ts:Date.now() });
+    } catch {}
+  }
+  function reset(){
+    setAnswers({}); setStep(0); setDone(false);
+    try { localStorage.removeItem('feminity_match'); } catch {}
+    setSavedMatch(null);
+  }
+  function viewSavedMatch(){
+    if(savedMatch){ setAnswers(savedMatch.answers); setDone(true); }
+  }
+  function shareWhatsApp(){
+    const txt = `Mein Feminity Beautymatch: ${result.lookName} (${result.matchType.label}). Schau es dir an: https://ruetherkoeln.github.io/feminity-app/`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+  }
+  function copyLink(){
+    navigator.clipboard?.writeText('https://ruetherkoeln.github.io/feminity-app/').then(()=>{
+      setCopyHint('Link kopiert!');
+      setTimeout(()=>setCopyHint(''), 2000);
+    });
+  }
+
+  // Quiz-Ansicht
+  if(!done){
+    const isMulti = !!currentQ.multi;
+    const selected = isMulti ? (answers[currentQ.id]||[]) : answers[currentQ.id];
+
+    return (
+      <Section className="py-12 max-w-3xl mx-auto">
+        <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Beautymatch</div>
+        <h1 className="font-display text-5xl text-ink-900 mt-2">Finde deinen Signature Look</h1>
+        <p className="text-ink-700 mt-4 max-w-xl">Finde deinen perfekten Hair- &amp; Beauty-Look — passend zu deinem Typ, deinem Alltag und deinem Anlass.</p>
+
+        {savedMatch && step===0 && Object.keys(answers).length===0 && (
+          <Card className="p-4 mt-6 flex items-center justify-between gap-4 bg-champagne-50">
+            <div className="text-sm">
+              <div className="font-medium">Letztes Match: {savedMatch.lookName}</div>
+              <div className="text-ink-600 text-xs mt-0.5">{new Date(savedMatch.ts).toLocaleDateString('de-DE')}</div>
+            </div>
+            <Button size="sm" variant="soft" onClick={viewSavedMatch}>Anzeigen</Button>
+          </Card>
+        )}
+
         <Card className="p-8 mt-8">
-          <div className="text-xs uppercase tracking-widest text-ink-600">Frage {step+1} von {QUESTIONS.length}</div>
-          <h3 className="font-display text-3xl mt-3">{QUESTIONS[step].q}</h3>
-          <div className="grid sm:grid-cols-2 gap-3 mt-6">
-            {QUESTIONS[step].opts.map(o=>(
-              <button key={o} onClick={()=>{ setAnswers({...answers,[step]:o}); setStep(step+1); }}
-                className="p-4 rounded-2xl border border-champagne-200 hover:border-ink-900 hover:bg-champagne-100 text-left text-base transition">{o}</button>
+          {/* Progress */}
+          <div className="flex items-center justify-between text-xs uppercase tracking-widest text-ink-600">
+            <span>{currentQ.section} · Frage {step+1} / {totalQuestions}</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-1.5 bg-champagne-100 rounded-full mt-2 overflow-hidden">
+            <div className="h-full bg-ink-900 transition-all duration-300" style={{width:`${progress}%`}}></div>
+          </div>
+          <div className="flex gap-1.5 mt-3">
+            {['Look','Hair','Beauty','Rahmen'].map((s,i)=>(
+              <span key={s} className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded-full ${i===sectionIdx?'bg-ink-900 text-champagne-50':i<sectionIdx?'bg-champagne-200 text-ink-700':'bg-champagne-100 text-ink-600'}`}>{s}</span>
             ))}
           </div>
-          <div className="flex justify-between mt-6 text-sm">
-            <button onClick={()=>step>0&&setStep(step-1)} className="text-ink-600 hover:underline">Zurück</button>
-            <div className="text-ink-600">{Object.keys(answers).length} / {QUESTIONS.length}</div>
+
+          <h3 className="font-display text-3xl mt-6">{currentQ.q}</h3>
+          {isMulti && <div className="text-xs text-ink-600 mt-1">Mehrfachauswahl möglich</div>}
+
+          <div className="grid sm:grid-cols-2 gap-3 mt-6">
+            {currentQ.opts.map(o=>{
+              const isSel = isMulti ? selected.includes(o) : selected===o;
+              return (
+                <button key={o} onClick={()=> isMulti ? toggleMulti(o) : selectSingle(o)}
+                  className={`p-4 rounded-2xl border text-left text-base transition flex items-center gap-3 ${isSel?'border-ink-900 bg-champagne-100':'border-champagne-200 hover:border-ink-900 hover:bg-champagne-50'}`}>
+                  <span className={`w-5 h-5 rounded-full border-2 grid place-items-center flex-shrink-0 ${isSel?'border-ink-900 bg-ink-900':'border-champagne-300'}`}>
+                    {isSel && <span className="text-champagne-50 text-[10px] leading-none">✓</span>}
+                  </span>
+                  <span>{o}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center mt-6 text-sm gap-3">
+            <button onClick={()=>step>0&&setStep(step-1)} disabled={step===0} className="text-ink-600 hover:underline disabled:opacity-30 disabled:no-underline">← Zurück</button>
+            {isMulti
+              ? <Button size="sm" onClick={nextMulti} disabled={!selected || selected.length===0}>{step+1>=totalQuestions?'Match anzeigen':'Weiter'}</Button>
+              : null
+            }
           </div>
         </Card>
-      )}
+      </Section>
+    );
+  }
 
-      {done && (
-        <Card className="p-8 mt-8">
-          <div className="text-xs uppercase tracking-widest text-ink-600">Deine Empfehlung</div>
-          <h3 className="font-display text-3xl mt-2">Das passt zu dir</h3>
-          <div className="space-y-3 mt-6">
-            {recommendation.filter(Boolean).map(s=>(
-              <div key={s.id} className="flex items-center justify-between p-4 rounded-2xl bg-champagne-50">
-                <div>
-                  <div className="text-xs text-ink-600">{s.cat}</div>
-                  <div className="font-medium">{s.name}</div>
-                  <div className="text-xs text-ink-600 mt-0.5">{minToHrs(s.duration)} · {s.fromPrice?'ab ':''}{fmt(s.price)}</div>
+  // Ergebnis-Ansicht
+  const r = result;
+  return (
+    <Section className="py-12 max-w-4xl mx-auto">
+      <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Dein Feminity Beauty-Rezept</div>
+      <div className="flex items-end justify-between flex-wrap gap-3 mt-2">
+        <div>
+          <h1 className="font-display text-5xl md:text-6xl text-ink-900">{r.lookName}</h1>
+          <div className="text-ink-700 mt-2">{r.matchType.label} — {r.matchType.sub}</div>
+        </div>
+        <Badge tone="rose">{r.matchType.label}</Badge>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-5 mt-8">
+        {/* Treatments */}
+        <Card className="p-6 md:col-span-2">
+          <h3 className="font-display text-2xl">Empfohlene Leistungen</h3>
+          <div className="space-y-3 mt-4">
+            {r.treatments.map(t=>(
+              <div key={t.id} className="p-4 rounded-2xl bg-champagne-50">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs text-ink-600">{t.cat}</div>
+                    <div className="font-medium">{t.name}</div>
+                    <div className="text-xs text-ink-600 mt-0.5">{minToHrs(t.duration)} · {t.fromPrice?'ab ':''}{fmt(t.price)}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <Badge tone="success">{t.matchPct}% Match</Badge>
+                    <Button size="sm" onClick={()=>setView('booking')}>Buchen</Button>
+                  </div>
                 </div>
-                <Button size="sm" onClick={()=>setView('booking')}>Buchen</Button>
               </div>
             ))}
           </div>
-          <div className="flex gap-3 mt-6">
-            <Button variant="soft" onClick={()=>{setAnswers({}); setStep(0);}}>Noch einmal</Button>
-            <Button variant="ghost" onClick={()=>setView('services')}>Alle Leistungen ansehen</Button>
+          <div className="flex justify-between items-center mt-5 pt-5 border-t border-champagne-100">
+            <div className="text-sm text-ink-600">Gesamtdauer · Gesamtpreis</div>
+            <div className="font-display text-xl">{minToHrs(r.totalDuration)} · ab {fmt(r.totalPrice)}</div>
           </div>
         </Card>
-      )}
+
+        {/* Team-Match */}
+        <Card className="p-6">
+          <h3 className="font-display text-2xl">Dein Team-Match</h3>
+          <div className="space-y-4 mt-4">
+            {r.team.length===0 && <div className="text-ink-600 text-sm">Beliebige Stylistin im Salon.</div>}
+            {r.team.map(st=>(
+              <div key={st.id} className="flex items-start gap-3">
+                {st.photo
+                  ? <img src={st.photo} alt={st.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+                  : <div className="w-14 h-14 rounded-full bg-gradient-to-br from-rose-200 to-champagne-300 grid place-items-center font-display text-xl text-ink-700 flex-shrink-0">{st.name[0]}</div>}
+                <div className="min-w-0">
+                  <div className="font-medium">{st.name}</div>
+                  <div className="text-xs text-ink-600 mb-1">{st.tag}</div>
+                  <div className="text-xs text-ink-700 italic">„{r.teamReason(st)}."</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Home-Routine */}
+        <Card className="p-6 md:col-span-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="font-display text-2xl">{r.routine.title}</h3>
+            <div className="text-xs text-ink-600 italic">Damit dein Ergebnis länger hält — nicht aggressiv, aber empfohlen.</div>
+          </div>
+          <div className="grid md:grid-cols-5 gap-3 mt-4">
+            {r.routine.items.map((p,i)=>(
+              <div key={i} className="p-4 rounded-2xl border border-champagne-200">
+                <div className="text-[10px] uppercase tracking-widest text-rose-500">{p.step}</div>
+                <div className="font-medium text-sm mt-1 leading-tight">{p.name}</div>
+                <div className="text-xs text-ink-600 mt-1">{p.desc}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Action Bar */}
+      <Card className="p-6 mt-5 flex flex-wrap items-center gap-3 justify-between">
+        <div>
+          <div className="font-display text-xl">Dein nächster Schritt</div>
+          <div className="text-sm text-ink-600">Buche dein Match-Paket — alle empfohlenen Leistungen, ein Termin.</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={()=>setView('booking')}>Dieses Match buchen</Button>
+          <Button variant="soft" onClick={shareWhatsApp}>Per WhatsApp teilen</Button>
+          <Button variant="ghost" onClick={copyLink}>{copyHint || 'Link kopieren'}</Button>
+          <Button variant="ghost" onClick={reset}>Match neu starten</Button>
+        </div>
+      </Card>
     </Section>
   );
 }
