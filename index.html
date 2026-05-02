@@ -48,28 +48,33 @@ const { useState, useMemo, useEffect, useRef } = React;
    SEED DATA
    ============================================================ */
 const SERVICES = [
-  { id:'svc-cut-classic', cat:'Hair · Cut & Styling', name:'Classic Cut', desc:'Schnitt inklusive Wäsche, Pflege und Föhnen.', duration:60, price:8500, fromPrice:true, staff:['nicky','esra','zahra'], signature:false, requiresForm:false, area:'HAIR' },
-  { id:'svc-balayage', cat:'Hair · Balayage', name:'Signature Balayage', desc:'Handgemalte Highlights für einen sonnenverwöhnten, natürlichen Look.', duration:240, price:32000, fromPrice:true, staff:['nicky'], signature:true, requiresForm:true, formKey:'color_consent', area:'HAIR' },
+  { id:'svc-cut-classic', cat:'Hair · Cut & Styling', name:'Classic Cut', desc:'Schnitt inklusive Wäsche, Pflege und Föhnen.', duration:60, price:8500, fromPrice:true, staff:['nicky','esra','zahra','evelyn'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-balayage', cat:'Hair · Balayage', name:'Signature Balayage', desc:'Handgemalte Highlights für einen sonnenverwöhnten, natürlichen Look.', duration:240, price:32000, fromPrice:true, staff:['nicky','evelyn'], signature:true, requiresForm:true, formKey:'color_consent', area:'HAIR' },
   { id:'svc-curl', cat:'Hair · Curl Couture', name:'Curl Couture Treatment', desc:'Curly Cut nach moderner Lockenmethode inklusive Pflege.', duration:120, price:14500, fromPrice:true, staff:['nicky'], signature:true, requiresForm:false, area:'HAIR' },
-  { id:'svc-color', cat:'Hair · Coloration', name:'Coloration Premium', desc:'Wurzeltonung oder vollständige Coloration inkl. Pflegekur.', duration:120, price:11500, fromPrice:true, staff:['nicky','zahra'], signature:false, requiresForm:true, formKey:'color_consent', area:'HAIR' },
-  { id:'svc-makeup', cat:'Beauty · Make-up', name:'Occasion Make-up', desc:'Premium-Make-up für besondere Anlässe.', duration:75, price:12000, fromPrice:false, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-color', cat:'Hair · Coloration', name:'Coloration Premium', desc:'Wurzeltonung oder vollständige Coloration inkl. Pflegekur.', duration:120, price:11500, fromPrice:true, staff:['nicky','zahra','evelyn'], signature:false, requiresForm:true, formKey:'color_consent', area:'HAIR' },
+  { id:'svc-makeup', cat:'Beauty · Make-up', name:'Occasion Make-up', desc:'Premium-Make-up für besondere Anlässe.', duration:75, price:12000, fromPrice:false, staff:['jule','evelyn'], signature:false, requiresForm:false, area:'BEAUTY' },
   { id:'svc-pmu', cat:'Beauty · Permanent Make-up', name:'PMU Augenbrauen', desc:'Augenbrauen-Pigmentierung in Microblading- oder Powder-Technik.', duration:180, price:49000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'pmu_consent', online:false, area:'BEAUTY' },
-  { id:'svc-greenpeel', cat:'Beauty · Green Peel', name:'Green Peel Classic', desc:'Pflanzliche Tiefenpeelingbehandlung der Schrammek-Methode.', duration:90, price:21000, fromPrice:false, staff:['jule'], signature:false, requiresForm:true, formKey:'greenpeel_consent', online:false, area:'BEAUTY' },
+  { id:'svc-greenpeel', cat:'Beauty · Green Peel', name:'Green Peel Classic', desc:'Pflanzliche Tiefenpeelingbehandlung der Schrammek-Methode.', duration:90, price:21000, fromPrice:false, staff:['jule','cosmina'], signature:false, requiresForm:true, formKey:'greenpeel_consent', online:false, area:'BEAUTY' },
   { id:'svc-nad', cat:'Beauty · Beauty Drips', name:'NAD+ Beauty Drip', desc:'Infusionstherapie zur zellulären Regeneration.', duration:120, price:39000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'iv_consent', online:false, area:'BEAUTY' },
-  { id:'svc-skin', cat:'Beauty · Skin', name:'Signature Skin Treatment', desc:'Individuelle Hautbehandlung mit Tiefenreinigung und Pflege.', duration:75, price:16500, fromPrice:false, staff:['jule'], signature:true, requiresForm:false, area:'BEAUTY' },
-  { id:'svc-consult', cat:'Beratung', name:'Beauty-Beratung', desc:'Individuelle 30-Minuten-Beratung mit Hautanalyse.', duration:30, price:4500, fromPrice:false, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
-  { id:'svc-glossing', cat:'Hair · Glossing', name:'Glossing', desc:'Glanztönung für sichtbar gepflegtes, glänzendes Haar — auffrischend und schonend.', duration:45, price:7500, fromPrice:true, staff:['nicky','zahra'], signature:false, requiresForm:false, area:'HAIR' },
-  { id:'svc-treatment', cat:'Hair · Treatment', name:'Hair Treatment Intensiv', desc:'Tiefenpflege für trockenes, brüchiges oder strapaziertes Haar.', duration:45, price:6500, fromPrice:true, staff:['nicky','esra','zahra'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-skin', cat:'Beauty · Skin', name:'Signature Skin Treatment', desc:'Individuelle Hautbehandlung mit Tiefenreinigung und Pflege.', duration:75, price:16500, fromPrice:false, staff:['jule','cosmina'], signature:true, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-consult', cat:'Beratung', name:'Beauty-Beratung', desc:'Individuelle 30-Minuten-Beratung mit Hautanalyse.', duration:30, price:4500, fromPrice:false, staff:['jule','cosmina'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-glossing', cat:'Hair · Glossing', name:'Glossing', desc:'Glanztönung für sichtbar gepflegtes, glänzendes Haar — auffrischend und schonend.', duration:45, price:7500, fromPrice:true, staff:['nicky','zahra','evelyn'], signature:false, requiresForm:false, area:'HAIR' },
+  { id:'svc-treatment', cat:'Hair · Treatment', name:'Hair Treatment Intensiv', desc:'Tiefenpflege für trockenes, brüchiges oder strapaziertes Haar.', duration:45, price:6500, fromPrice:true, staff:['nicky','esra','zahra','evelyn'], signature:false, requiresForm:false, area:'HAIR' },
   { id:'svc-extensions', cat:'Hair · Extensions', name:'Tape Extensions', desc:'Premium Tape Extensions inkl. Beratung, Einarbeitung und Styling.', duration:180, price:59000, fromPrice:true, staff:['zahra'], signature:true, requiresForm:true, formKey:'extensions_consent', area:'HAIR' },
-  { id:'svc-brows', cat:'Beauty · Brows', name:'Brow Styling', desc:'Augenbrauen formen, färben und stylen für den perfekten Rahmen.', duration:30, price:4500, fromPrice:true, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
-  { id:'svc-lash', cat:'Beauty · Lash', name:'Lash Lift', desc:'Wimpernlifting mit Tönung — natürlich geschwungene Wimpern für 6–8 Wochen.', duration:60, price:8500, fromPrice:true, staff:['jule'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-brows', cat:'Beauty · Brows', name:'Brow Styling', desc:'Augenbrauen formen, färben und stylen für den perfekten Rahmen.', duration:30, price:4500, fromPrice:true, staff:['jule','cosmina'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-lash', cat:'Beauty · Lash', name:'Lash Lift', desc:'Wimpernlifting mit Tönung — natürlich geschwungene Wimpern für 6–8 Wochen.', duration:60, price:8500, fromPrice:true, staff:['jule','cosmina'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-apparative', cat:'Beauty · Apparative Kosmetik', name:'Apparative Gesichtsbehandlung', desc:'Microcurrent, Radiofrequenz oder Ultraschall — apparativ für sichtbare Hautverbesserung.', duration:60, price:14500, fromPrice:true, staff:['jule','cosmina'], signature:true, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-natural', cat:'Beauty · Naturkosmetik', name:'Naturkosmetik-Behandlung', desc:'Gesichtsbehandlung mit pflanzlichen, biozertifizierten Wirkstoffen — ganzheitlich und sanft.', duration:75, price:13500, fromPrice:true, staff:['cosmina'], signature:false, requiresForm:false, area:'BEAUTY' },
+  { id:'svc-bridal', cat:'Beauty · Wedding', name:'Bridal Hair & Make-up', desc:'Komplettes Brautstyling: Hair, Make-up, Probestyling und Tag-Begleitung möglich.', duration:180, price:39000, fromPrice:true, staff:['evelyn','jule'], signature:true, requiresForm:false, area:'BEAUTY' },
 ];
 
 const STAFF = [
-  { id:'jule', name:'Jule', role:'Lead Beauty · Beauty-Anwendungen', lead:'Beauty', tag:'Lead Beauty', specs:['Gesicht','PMU','Shows','Fernsehen','Shootings'], statement:'Beauty ist für mich eine Form von Selfcare. Ich begleite meine Kundinnen ganzheitlich.', languages:['Deutsch','English','Français','Português','Lingala'], years:15, photo:'assets/Jule.jpg' },
-  { id:'nicky', name:'Nicky', role:'Lead Hair · Master Hair Stylist', lead:'Hair', tag:'Lead Hair', specs:['Alle Schnitte','Colorationen','French Balayage','Internationale Erfahrung'], statement:'Haar erzählt eine Geschichte. Meine Mission ist es, jeden Look individuell zu gestalten — egal wo auf der Welt.', languages:['Deutsch','English','Français','Lingala'], years:20, photo:'assets/Nicky.jpg' },
-  { id:'esra', name:'Esra', role:'Friseurin', lead:'Hair', tag:'Hair Stylist', specs:['Modell-Schnitte','Föhnen','Individueller Stil','Empathische Beratung'], statement:'Ich höre genau zu — und finde den Look, der wirklich zu dir passt.', languages:['Deutsch','English','Türkçe'], years:3, photo:'' },
-  { id:'zahra', name:'Zahra', role:'Master-Stylistin · Extensions-Expertin', lead:'Hair', tag:'Master Stylist', specs:['Alle Schnitte','Colorationen','Extensions','Extensions-Styling','Alle Haartypen'], statement:'Jeder Haartyp hat seine Sprache — ich übersetze sie in den Look, den du dir wünschst.', languages:['Deutsch','English','فارسی'], years:15, photo:'' },
+  { id:'jule', name:'Jule', role:'Lead Beauty · Beauty-Anwendungen', lead:'Beauty', tag:'Lead Beauty', specs:['Gesicht','PMU','Shows','Fernsehen','Shootings'], statement:'Beauty ist für mich eine Form von Selfcare. Ich begleite meine Kundinnen ganzheitlich.', languages:['Deutsch','English','Français','Português','Lingala'], years:15, photo:'assets/Jule.jpg', photoFocus:'center 45%' },
+  { id:'nicky', name:'Nicky', role:'Lead Hair · Master Hair Stylist', lead:'Hair', tag:'Lead Hair', specs:['Alle Schnitte','Colorationen','French Balayage','Internationale Erfahrung'], statement:'Haar erzählt eine Geschichte. Meine Mission ist es, jeden Look individuell zu gestalten — egal wo auf der Welt.', languages:['Deutsch','English','Français','Lingala'], years:20, photo:'assets/Nicky.jpg', photoFocus:'center 40%' },
+  { id:'esra', name:'Esra', role:'Friseurin · Assistant Hair', lead:'Hair', tag:'Assistant Hair', specs:['Modell-Schnitte','Föhnen','Individueller Stil','Empathische Beratung'], statement:'Ich höre genau zu — und finde den Look, der wirklich zu dir passt.', languages:['Deutsch','English','Türkçe'], years:3, photo:'assets/Esra.jpg', photoFocus:'center 15%' },
+  { id:'zahra', name:'Zahra', role:'Master-Stylistin · Extensions-Expertin', lead:'Hair', tag:'Master Stylist', specs:['Alle Schnitte','Colorationen','Extensions','Extensions-Styling','Alle Haartypen'], statement:'Jeder Haartyp hat seine Sprache — ich übersetze sie in den Look, den du dir wünschst.', languages:['Deutsch','English','فارسی'], years:15, photo:'assets/Zahra.jpeg', photoFocus:'center 0%' },
+  { id:'cosmina', name:'Cosmina', role:'Master Beautician · Naturkosmetik & Apparative Kosmetik', lead:'Beauty', tag:'Master Beautician', specs:['Gesichtsbehandlungen','Apparative Kosmetik','Naturkosmetik','Skin Expert'], statement:'Schöne Haut entsteht aus Wissen, Geduld und natürlichen Wirkstoffen.', languages:['Deutsch','English','Română'], years:10, photo:'assets/Cosmina.jpg', photoFocus:'center 8%' },
+  { id:'evelyn', name:'Evelyn', role:'Master Stylist · Master Beautician', lead:'Hair', tag:'Master Stylist & Beautician', specs:['Alle Schnitte','Colorationen','Balayage Künstlerin','Wedding Hair & Make-up','Runway · Shootings'], statement:'Vom Salon bis zum Runway — ich kreiere Looks, die in jedem Setting funktionieren.', languages:['Deutsch','English','Polski'], years:16, photo:'assets/Evelyn.jpeg', photoFocus:'center 8%' },
 ];
 
 const HOME_ROUTINES = {
@@ -737,9 +742,13 @@ function TeamPage({ setView }){
         {STAFF.map(s=>(
           <Card key={s.id} className="overflow-hidden">
             <div className="aspect-[3/2] overflow-hidden">
-              {s.photo
-                ? <img src={s.photo} alt={s.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400 grid place-items-center font-display text-7xl text-ink-700">{s.name[0]}</div>}
+              {s.photo && !s.photoSmall
+                ? <img src={s.photo} alt={s.name} className="w-full h-full object-cover" style={{objectPosition: s.photoFocus || 'center top'}} />
+                : <div className="w-full h-full bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400 grid place-items-center">
+                    {s.photo
+                      ? <img src={s.photo} alt={s.name} className="w-32 h-32 rounded-full object-cover ring-4 ring-white shadow-lg" style={{objectPosition: s.photoFocus || 'center top'}} />
+                      : <span className="font-display text-7xl text-ink-700">{s.name[0]}</span>}
+                  </div>}
             </div>
             <div className="p-6">
               <div className="flex items-start justify-between gap-3">
@@ -850,11 +859,12 @@ function computeMatch(a){
     // L1 goal
     if(a.L1==='Haarrettung' && (s.id==='svc-treatment'||s.id==='svc-curl'||s.id==='svc-glossing')) p += 30;
     if(a.L1==='Glamour' && (s.id==='svc-makeup'||s.id==='svc-balayage'||s.id==='svc-lash')) p += 25;
-    if(a.L1==='Event / Hochzeit' && (s.id==='svc-makeup'||s.id==='svc-balayage'||s.id==='svc-brows'||s.id==='svc-lash')) p += 25;
-    if(a.L1==='Anti-Aging' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-nad')) p += 30;
-    if(a.L1==='Hautbild verbessern' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-consult')) p += 30;
+    if(a.L1==='Event / Hochzeit' && (s.id==='svc-makeup'||s.id==='svc-balayage'||s.id==='svc-brows'||s.id==='svc-lash'||s.id==='svc-bridal')) p += 25;
+    if(a.L1==='Event / Hochzeit' && s.id==='svc-bridal') p += 20;
+    if(a.L1==='Anti-Aging' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-nad'||s.id==='svc-apparative')) p += 30;
+    if(a.L1==='Hautbild verbessern' && (s.id==='svc-skin'||s.id==='svc-greenpeel'||s.id==='svc-consult'||s.id==='svc-natural'||s.id==='svc-apparative')) p += 30;
     if(a.L1==='Business Look' && (s.id==='svc-cut-classic'||s.id==='svc-glossing'||s.id==='svc-brows')) p += 20;
-    if(a.L1==='Natürlich frischer aussehen' && (s.id==='svc-glossing'||s.id==='svc-skin'||s.id==='svc-brows'||s.id==='svc-treatment')) p += 20;
+    if(a.L1==='Natürlich frischer aussehen' && (s.id==='svc-glossing'||s.id==='svc-skin'||s.id==='svc-brows'||s.id==='svc-treatment'||s.id==='svc-natural')) p += 20;
 
     // Hair wishes
     if(wishes.includes('Schnitt') && s.id==='svc-cut-classic') p += 25;
@@ -872,11 +882,13 @@ function computeMatch(a){
     if(a.H4==='Blondiert' && (s.id==='svc-treatment'||s.id==='svc-glossing')) p += 15;
 
     // Beauty concerns
-    if(concerns.includes('Glow fehlt')||concerns.includes('Müde Haut')){ if(s.id==='svc-skin'||s.id==='svc-nad') p += 25; }
-    if(concerns.includes('Unreinheiten')||concerns.includes('Pigmentflecken')){ if(s.id==='svc-greenpeel') p += 30; }
-    if(concerns.includes('Falten')||concerns.includes('Augenringe')){ if(s.id==='svc-skin'||s.id==='svc-nad') p += 20; }
+    if(concerns.includes('Glow fehlt')||concerns.includes('Müde Haut')){ if(s.id==='svc-skin'||s.id==='svc-nad'||s.id==='svc-apparative') p += 25; }
+    if(concerns.includes('Unreinheiten')||concerns.includes('Pigmentflecken')){ if(s.id==='svc-greenpeel'||s.id==='svc-apparative') p += 30; }
+    if(concerns.includes('Falten')||concerns.includes('Augenringe')){ if(s.id==='svc-skin'||s.id==='svc-nad'||s.id==='svc-apparative') p += 20; }
     if(concerns.includes('Brows')){ if(s.id==='svc-brows'||s.id==='svc-pmu') p += 35; }
     if(concerns.includes('Lashes')){ if(s.id==='svc-lash') p += 40; }
+    if(concerns.includes('Trockenheit')){ if(s.id==='svc-skin'||s.id==='svc-natural') p += 20; }
+    if(traits.includes('Natürlich') && s.id==='svc-natural') p += 15;
 
     // Style traits
     if(traits.includes('Luxuriös') && s.signature) p += 8;
@@ -908,16 +920,44 @@ function computeMatch(a){
     let p = 0;
     const hairTreatments = treatments.filter(t=>t.area==='HAIR');
     const beautyTreatments = treatments.filter(t=>t.area==='BEAUTY');
-    if(beautyTreatments.length && st.id==='jule') p += 50;
-    // Hair: pick based on H4/H6/L1
+    const facialConcerns = concerns.some(c=>['Müde Haut','Unreinheiten','Trockenheit','Pigmentflecken','Falten','Augenringe','Glow fehlt'].includes(c));
+    const isWedding = a.L1==='Event / Hochzeit';
+    const isGlamour = a.L1==='Glamour';
+    const isSignatureOrTransform = mt!==MATCH_TYPES.daily;
+
+    // Beauty
+    if(beautyTreatments.length && st.id==='jule') p += 45;
+    if(beautyTreatments.length && st.id==='cosmina'){
+      p += 30;
+      if(facialConcerns) p += 25;
+      if(traits.includes('Natürlich')||traits.includes('Clean')) p += 15;
+      if(treatments.some(t=>t.id==='svc-apparative'||t.id==='svc-natural'||t.id==='svc-greenpeel')) p += 20;
+    }
+
+    // Hair
     if(hairTreatments.length){
       if(st.id==='nicky') p += 30;
-      if((a.H4==='Blondiert'||wishes.includes('Farbe')||a.L1==='Glamour') && st.id==='nicky') p += 20;
+      if((a.H4==='Blondiert'||wishes.includes('Farbe')||isGlamour) && st.id==='nicky') p += 20;
       if(wishes.includes('Extensions') && st.id==='zahra') p += 50;
       if(a.H2==='Kraus'||a.H2==='African Hair'){ if(st.id==='nicky'||st.id==='zahra') p += 15; }
       if(wishes.includes('Schnitt') && hairTreatments.length===1 && a.L2==='Minimal'){ if(st.id==='esra') p += 25; }
       if(a.H4==='Coloriert' && st.id==='zahra') p += 10;
+      if(st.id==='evelyn'){
+        p += 15;
+        if(wishes.includes('Farbe')||a.H4==='Blondiert') p += 20;
+        if(treatments.some(t=>t.id==='svc-balayage')) p += 15;
+      }
     }
+
+    // Wedding/Glamour: Evelyn excels at all-in-one
+    if((isWedding||isGlamour) && st.id==='evelyn'){
+      p += 30;
+      if(treatments.some(t=>t.id==='svc-bridal'||t.id==='svc-makeup')) p += 20;
+    }
+
+    // Signature/Transformation tilts toward senior team
+    if(isSignatureOrTransform && (st.id==='nicky'||st.id==='evelyn'||st.id==='zahra'||st.id==='cosmina'||st.id==='jule')) p += 5;
+
     return p;
   };
   const teamRanked = STAFF.map(st=>({ st, p:teamScore(st) }))
@@ -933,6 +973,16 @@ function computeMatch(a){
     if(st.id==='zahra' && (a.H2==='Kraus'||a.H2==='African Hair')) reasons.push('weil sie alle Haartypen tief versteht');
     if(st.id==='zahra' && reasons.length===0) reasons.push('weil sie alle Schnitte und Colorationen souverän umsetzt');
     if(st.id==='esra') reasons.push('weil sie sehr einfühlsam an deinen individuellen Stil herangeht');
+    if(st.id==='cosmina'){
+      if(treatments.some(t=>t.id==='svc-natural')) reasons.push('weil ihre Naturkosmetik-Expertise perfekt zu deinem Wunsch passt');
+      else if(treatments.some(t=>t.id==='svc-apparative')) reasons.push('weil sie apparative Kosmetik gezielt einsetzt');
+      else reasons.push('weil sie Gesichtsbehandlungen mit Wissen und Geduld führt');
+    }
+    if(st.id==='evelyn'){
+      if(a.L1==='Event / Hochzeit') reasons.push('weil sie Hair und Make-up für Hochzeiten als ein Gesamtwerk denkt');
+      else if(treatments.some(t=>t.id==='svc-balayage')) reasons.push('weil sie als Balayage-Künstlerin handgemalte Highlights setzt');
+      else reasons.push('weil sie Hair und Beauty in einer Hand vereint — Salon bis Runway');
+    }
     return reasons[0] || 'weil ihre Specialties zu deinem Match passen';
   };
 
