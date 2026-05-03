@@ -49,11 +49,11 @@ const { useState, useMemo, useEffect, useRef } = React;
    ============================================================ */
 const SERVICES = [
   { id:'svc-cut-classic', cat:'Hair · Cut & Styling', name:'Classic Cut', desc:'Schnitt inklusive Wäsche, Pflege und Föhnen.', duration:60, price:8500, fromPrice:true, staff:['nicky','esra','zahra','evelyn'], signature:false, requiresForm:false, area:'HAIR' },
-  { id:'svc-balayage', cat:'Hair · Balayage', name:'Signature Balayage', desc:'Handgemalte Highlights für einen sonnenverwöhnten, natürlichen Look.', duration:240, price:32000, fromPrice:true, staff:['nicky','evelyn'], signature:true, requiresForm:true, formKey:'color_consent', area:'HAIR' },
-  { id:'svc-curl', cat:'Hair · Curl Couture', name:'Curl Couture Treatment', desc:'Curly Cut nach moderner Lockenmethode inklusive Pflege.', duration:120, price:14500, fromPrice:true, staff:['nicky'], signature:true, requiresForm:false, area:'HAIR' },
+  { id:'svc-balayage', cat:'Hair · Balayage', name:'Signature Balayage', desc:'Handgemalte Highlights für einen sonnenverwöhnten, natürlichen Look.', duration:240, price:32000, fromPrice:true, staff:['nicky','evelyn'], signature:true, requiresForm:true, formKey:'color_consent', area:'HAIR', photo:'assets/balayage.jpg' },
+  { id:'svc-curl', cat:'Hair · Curl Couture', name:'Curl Couture Treatment', desc:'Curly Cut nach moderner Lockenmethode inklusive Pflege.', duration:120, price:14500, fromPrice:true, staff:['nicky'], signature:true, requiresForm:false, area:'HAIR', photo:'assets/curl-couture.jpg' },
   { id:'svc-color', cat:'Hair · Coloration', name:'Coloration Premium', desc:'Wurzeltonung oder vollständige Coloration inkl. Pflegekur.', duration:120, price:11500, fromPrice:true, staff:['nicky','zahra','evelyn'], signature:false, requiresForm:true, formKey:'color_consent', area:'HAIR' },
   { id:'svc-makeup', cat:'Beauty · Make-up', name:'Occasion Make-up', desc:'Premium-Make-up für besondere Anlässe.', duration:75, price:12000, fromPrice:false, staff:['jule','evelyn'], signature:false, requiresForm:false, area:'BEAUTY' },
-  { id:'svc-pmu', cat:'Beauty · Permanent Make-up', name:'PMU Augenbrauen', desc:'Augenbrauen-Pigmentierung in Microblading- oder Powder-Technik.', duration:180, price:49000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'pmu_consent', online:false, area:'BEAUTY' },
+  { id:'svc-pmu', cat:'Beauty · Permanent Make-up', name:'PMU Augenbrauen', desc:'Augenbrauen-Pigmentierung in Microblading- oder Powder-Technik.', duration:180, price:49000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'pmu_consent', online:false, area:'BEAUTY', photo:'assets/pmu-augenbrauen.jpg' },
   { id:'svc-greenpeel', cat:'Beauty · Green Peel', name:'Green Peel Classic', desc:'Pflanzliche Tiefenpeelingbehandlung der Schrammek-Methode.', duration:90, price:21000, fromPrice:false, staff:['jule','cosmina'], signature:false, requiresForm:true, formKey:'greenpeel_consent', online:false, area:'BEAUTY' },
   { id:'svc-nad', cat:'Beauty · Beauty Drips', name:'NAD+ Beauty Drip', desc:'Infusionstherapie zur zellulären Regeneration.', duration:120, price:39000, fromPrice:true, staff:['jule'], signature:true, requiresForm:true, formKey:'iv_consent', online:false, area:'BEAUTY' },
   { id:'svc-skin', cat:'Beauty · Skin', name:'Signature Skin Treatment', desc:'Individuelle Hautbehandlung mit Tiefenreinigung und Pflege.', duration:75, price:16500, fromPrice:false, staff:['jule','cosmina'], signature:true, requiresForm:false, area:'BEAUTY' },
@@ -493,14 +493,34 @@ function Header({ view, setView, role, auth }){
     { k:'admin-treatwell', label:'Treatwell-Sync' },
   ];
   const nav = role==='STAFF' ? staffNav : role==='ADMIN' ? adminNav : customerNav;
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
+    <header className="sticky top-0 z-40">
+      <div className="backdrop-blur-md bg-champagne-50/80 border-b border-champagne-100">
       <Section className="py-4">
-        <button onClick={()=>setView('home')} className="flex justify-center mx-auto">
+        {/* Mobile: Hamburger links, Logo zentriert, Avatar rechts */}
+        <div className="md:hidden flex items-center justify-between gap-3">
+          <button onClick={()=>setMobileOpen(true)} aria-label="Menü öffnen"
+            className="w-10 h-10 grid place-items-center rounded-full hover:bg-champagne-100">
+            <span className="block w-5 h-0.5 bg-ink-900 relative before:content-[''] before:absolute before:left-0 before:-top-1.5 before:w-5 before:h-0.5 before:bg-ink-900 after:content-[''] after:absolute after:left-0 after:top-1.5 after:w-5 after:h-0.5 after:bg-ink-900"></span>
+          </button>
+          <button onClick={()=>setView('home')}>
+            <img src="assets/Logo.png" alt="Feminity Oberkassel" className="h-12 w-auto object-contain" />
+          </button>
+          <div className="w-10 flex justify-end">
+            {role==='CUSTOMER' && auth?.user
+              ? <button onClick={()=>setView('account')} className="w-9 h-9 rounded-full overflow-hidden bg-ink-900 grid place-items-center text-champagne-50 text-xs font-medium">
+                  {auth.user.photo ? <img src={auth.user.photo} alt={auth.user.name} className="w-full h-full object-cover" /> : auth.user.name[0]?.toUpperCase()}
+                </button>
+              : null}
+          </div>
+        </div>
+        {/* Desktop: Logo zentriert oben, Nav darunter */}
+        <button onClick={()=>setView('home')} className="hidden md:flex justify-center mx-auto">
           <img src="assets/Logo.png" alt="Feminity Oberkassel" className="h-20 w-auto object-contain" />
         </button>
-        <div className="flex items-center justify-between mt-4">
-          <nav className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center justify-between mt-4">
+          <nav className="flex items-center gap-1">
             {nav.map(n=>(
               <button key={n.k} onClick={()=>setView(n.k)}
                 className={`px-3 py-2 rounded-full text-sm transition-colors ${view===n.k?'bg-ink-900 text-champagne-50':'text-ink-700 hover:bg-champagne-100'}`}>
@@ -524,6 +544,47 @@ function Header({ view, setView, role, auth }){
           </div>
         </div>
       </Section>
+      </div>
+
+      {/* Mobile Drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div onClick={()=>setMobileOpen(false)} className="absolute inset-0 bg-ink-900/50"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-champagne-50 shadow-2xl flex flex-col">
+            <div className="p-5 flex items-center justify-between border-b border-champagne-100">
+              <img src="assets/Logo.png" alt="Feminity" className="h-10 w-auto object-contain" />
+              <button onClick={()=>setMobileOpen(false)} aria-label="Menü schließen"
+                className="w-9 h-9 grid place-items-center rounded-full hover:bg-champagne-100 text-ink-900 text-xl">×</button>
+            </div>
+            <nav className="flex-1 p-4 overflow-y-auto">
+              {nav.map(n=>(
+                <button key={n.k} onClick={()=>{ setView(n.k); setMobileOpen(false); }}
+                  className={`block w-full text-left px-4 py-3 rounded-2xl text-base mb-1 ${view===n.k?'bg-ink-900 text-champagne-50':'text-ink-900 hover:bg-champagne-100'}`}>
+                  {n.label}
+                </button>
+              ))}
+              {role==='CUSTOMER' && (
+                <div className="mt-6 pt-6 border-t border-champagne-100 space-y-2">
+                  {!auth?.user
+                    ? <>
+                        <button onClick={()=>{ setView('login'); setMobileOpen(false); }}
+                          className="block w-full text-left px-4 py-3 rounded-2xl text-base text-ink-700 hover:bg-champagne-100">Anmelden</button>
+                        <button onClick={()=>{ setView('register'); setMobileOpen(false); }}
+                          className="block w-full text-left px-4 py-3 rounded-2xl text-base text-ink-700 hover:bg-champagne-100">Registrieren</button>
+                      </>
+                    : <button onClick={()=>{ auth.logout(); setView('home'); setMobileOpen(false); }}
+                        className="block w-full text-left px-4 py-3 rounded-2xl text-base text-ink-700 hover:bg-champagne-100">Logout</button>}
+                </div>
+              )}
+            </nav>
+            {role==='CUSTOMER' && (
+              <div className="p-4 border-t border-champagne-100">
+                <Button className="w-full" onClick={()=>{ setView('services'); setMobileOpen(false); }}>Termin buchen</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -641,7 +702,9 @@ function Home({ setView }){
         <div className="grid md:grid-cols-3 gap-5">
           {SERVICES.filter(s=>s.signature).slice(0,3).map(s=>(
             <Card key={s.id} className="overflow-hidden group">
-              <div className="aspect-[4/3] bg-gradient-to-br from-champagne-200 to-rose-200"></div>
+              <div className="aspect-[4/3] overflow-hidden bg-gradient-to-br from-champagne-200 to-rose-200">
+                {s.photo && <img src={s.photo} alt={s.name} className="w-full h-full object-cover" />}
+              </div>
               <div className="p-6">
                 <div className="text-xs uppercase tracking-widest text-ink-600">{s.cat}</div>
                 <h3 className="font-display text-2xl mt-2 text-ink-900">{s.name}</h3>
