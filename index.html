@@ -1159,13 +1159,36 @@ const MATCH_QUESTIONS = [
   ]},
 ];
 
+const STYLE_LOOKS = [
+  { id:'natural-glow',  name:'Natural Glow',         desc:'Frischer Teint, dezente Highlights, weiche Wellen',     tags:['Natürlich','Clean'],            bg:'from-champagne-100 via-rose-100 to-champagne-200' },
+  { id:'soft-glam',     name:'Soft Glam',            desc:'Sichtbares Make-up, definierte Brows, glänzendes Haar', tags:['Glamour','Elegant'],            bg:'from-rose-200 via-champagne-200 to-champagne-400' },
+  { id:'bold-curls',    name:'Bold Curls',           desc:'Definierte Locken mit Bounce',                          tags:['Edgy','Feminin'],               photo:'assets/curl-couture.jpg' },
+  { id:'sun-kissed',    name:'Sun-Kissed Balayage',  desc:'Handgemalte Highlights, sonnenverwöhnt',                tags:['Glamour','Luxuriös','Natürlich'], photo:'assets/balayage.jpg' },
+  { id:'defined-brows', name:'Defined Brows',        desc:'Perfekt geformte Augenbrauen — der wache Look',         tags:['Clean','Low Maintenance'],     photo:'assets/pmu-augenbrauen.jpg' },
+  { id:'edgy-bob',      name:'Edgy Bob',             desc:'Präziser Schnitt mit Statement-Energie',                tags:['Edgy','Mutig','Clean'],         bg:'from-ink-600 via-ink-800 to-ink-900', dark:true },
+  { id:'bridal',        name:'Bridal Romance',       desc:'Weiche Updo, zarte Wellen, brautwürdige Eleganz',       tags:['Feminin','Elegant'],           bg:'from-champagne-50 via-rose-100 to-rose-200' },
+  { id:'business-fresh',name:'Business Fresh',       desc:'Glatt, dezent gestylt — souverän und professionell',    tags:['Clean','Low Maintenance'],     bg:'from-champagne-200 via-ink-700 to-ink-900', dark:true },
+];
+
 const MATCH_TYPES = {
   daily:       { key:'daily',       label:'Daily Beauty Match',       sub:'Alltagstauglich, gepflegt, natürlich' },
   signature:   { key:'signature',   label:'Signature Feminity Match', sub:'Sichtbar hochwertig — bewusst gewählt' },
   transform:   { key:'transform',   label:'Transformation Match',     sub:'Größere Veränderung, neuer Look' },
 };
 
-function computeMatch(a){
+function computeMatch(a, opts={}){
+  const swipeReactions = opts.swipeReactions || {};
+  // Aggregate liked tags from swipe (Like = +1, Love = +2)
+  const likedTags = {};
+  for(const look of STYLE_LOOKS){
+    const r = swipeReactions[look.id];
+    if(r === 'like' || r === 'love'){
+      const w = r === 'love' ? 2 : 1;
+      for(const tag of look.tags) likedTags[tag] = (likedTags[tag] || 0) + w;
+    }
+  }
+  const topStyleTags = Object.entries(likedTags).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t])=>t);
+
   // Match-Type aus L2
   let mt = MATCH_TYPES.daily;
   if(a.L2==='Sichtbar' || a.L2==='Mutig') mt = MATCH_TYPES.signature;
@@ -1225,6 +1248,15 @@ function computeMatch(a){
     // Style traits
     if(traits.includes('Luxuriös') && s.signature) p += 8;
     if(traits.includes('Low Maintenance') && (s.id==='svc-glossing'||s.id==='svc-pmu'||s.id==='svc-lash')) p += 15;
+
+    // Swipe-Tags Bonus
+    if((likedTags['Glamour']||0) > 0 && (s.id==='svc-balayage'||s.id==='svc-makeup'||s.id==='svc-lash')) p += likedTags['Glamour']*4;
+    if((likedTags['Edgy']||0) > 0 && (s.id==='svc-cut-classic'||s.id==='svc-color')) p += likedTags['Edgy']*4;
+    if((likedTags['Natürlich']||0) > 0 && (s.id==='svc-glossing'||s.id==='svc-natural'||s.id==='svc-treatment')) p += likedTags['Natürlich']*4;
+    if((likedTags['Luxuriös']||0) > 0 && s.signature) p += likedTags['Luxuriös']*3;
+    if((likedTags['Clean']||0) > 0 && (s.id==='svc-cut-classic'||s.id==='svc-glossing'||s.id==='svc-brows')) p += likedTags['Clean']*3;
+    if((likedTags['Low Maintenance']||0) > 0 && (s.id==='svc-glossing'||s.id==='svc-pmu'||s.id==='svc-lash')) p += likedTags['Low Maintenance']*3;
+    if((likedTags['Feminin']||0) > 0 && (s.id==='svc-curl'||s.id==='svc-bridal'||s.id==='svc-makeup')) p += likedTags['Feminin']*3;
 
     // Time fit
     if(a.F2==='unter 1 h' && s.duration<=60) p += 5;
@@ -1345,16 +1377,23 @@ function computeMatch(a){
     totalDuration,
     totalPrice,
     answers: a,
+    topStyleTags,
+    inspirationPhoto: opts.inspirationPhoto || null,
   };
 }
 
 function BeautyMatch({ setView, auth }){
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [done, setDone] = useState(false);
+  const [phase, setPhase] = useState('quiz'); // 'quiz' | 'swipe' | 'photo' | 'result'
   const [savedMatch, setSavedMatch] = useState(null);
   const [copyHint, setCopyHint] = useState('');
   const [pointsEarned, setPointsEarned] = useState(0);
+  const [swipeIdx, setSwipeIdx] = useState(0);
+  const [swipeReactions, setSwipeReactions] = useState({});
+  const [inspirationPhoto, setInspirationPhoto] = useState(null);
+  const [photoError, setPhotoError] = useState('');
+  const photoInputRef = useRef(null);
 
   // Load saved match on mount
   useEffect(()=>{
@@ -1369,13 +1408,13 @@ function BeautyMatch({ setView, auth }){
   const sectionIdx = ['Look','Hair','Beauty','Rahmen'].indexOf(currentQ?.section);
   const progress = Math.round(((step) / totalQuestions) * 100);
 
-  const result = useMemo(()=> done ? computeMatch(answers) : null, [done, answers]);
+  const result = useMemo(()=> phase==='result' ? computeMatch(answers, { swipeReactions, inspirationPhoto }) : null, [phase, answers, swipeReactions, inspirationPhoto]);
 
   function selectSingle(opt){
     const next = { ...answers, [currentQ.id]: opt };
     setAnswers(next);
     if(step+1 >= totalQuestions){
-      finalize(next);
+      setPhase('swipe');
     } else {
       setStep(step+1);
     }
@@ -1386,19 +1425,37 @@ function BeautyMatch({ setView, auth }){
     setAnswers({ ...answers, [currentQ.id]: next });
   }
   function nextMulti(){
-    if(step+1 >= totalQuestions) finalize(answers);
+    if(step+1 >= totalQuestions) setPhase('swipe');
     else setStep(step+1);
   }
-  function finalize(allAnswers){
-    setDone(true);
+  function reactToLook(reaction){
+    const look = STYLE_LOOKS[swipeIdx];
+    setSwipeReactions({ ...swipeReactions, [look.id]: reaction });
+    if(swipeIdx + 1 >= STYLE_LOOKS.length){ setPhase('photo'); }
+    else setSwipeIdx(swipeIdx + 1);
+  }
+  function skipSwipe(){ setPhase('photo'); }
+  function handlePhotoChange(e){
+    const file = e.target.files?.[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ setPhotoError('Bitte ein Bild auswählen.'); return; }
+    if(file.size > 1_500_000){ setPhotoError('Maximal 1,5 MB. Bitte komprimieren.'); return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{ setInspirationPhoto(reader.result); setPhotoError(''); };
+    reader.readAsDataURL(file);
+  }
+  function finishToResult(){
+    finalize();
+  }
+  function finalize(){
+    setPhase('result');
     try {
-      const m = computeMatch(allAnswers);
-      localStorage.setItem('feminity_match', JSON.stringify({ answers:allAnswers, lookName:m.lookName, ts:Date.now() }));
-      setSavedMatch({ answers:allAnswers, lookName:m.lookName, ts:Date.now() });
+      const m = computeMatch(answers, { swipeReactions, inspirationPhoto });
+      localStorage.setItem('feminity_match', JSON.stringify({ answers, swipeReactions, inspirationPhoto, lookName:m.lookName, ts:Date.now() }));
+      setSavedMatch({ answers, swipeReactions, inspirationPhoto, lookName:m.lookName, ts:Date.now() });
     } catch {}
-    // Award 50 Beauty Points for completing the match (only first time per session)
     if(auth?.user && pointsEarned === 0){
-      const m = computeMatch(allAnswers);
+      const m = computeMatch(answers, { swipeReactions, inspirationPhoto });
       auth.updateUser({
         loyaltyPoints: auth.user.loyaltyPoints + 50,
         completedMatches: (auth.user.completedMatches || 0) + 1,
@@ -1408,12 +1465,18 @@ function BeautyMatch({ setView, auth }){
     }
   }
   function reset(){
-    setAnswers({}); setStep(0); setDone(false);
+    setAnswers({}); setStep(0); setPhase('quiz');
+    setSwipeIdx(0); setSwipeReactions({}); setInspirationPhoto(null);
     try { localStorage.removeItem('feminity_match'); } catch {}
     setSavedMatch(null);
   }
   function viewSavedMatch(){
-    if(savedMatch){ setAnswers(savedMatch.answers); setDone(true); }
+    if(savedMatch){
+      setAnswers(savedMatch.answers);
+      setSwipeReactions(savedMatch.swipeReactions || {});
+      setInspirationPhoto(savedMatch.inspirationPhoto || null);
+      setPhase('result');
+    }
   }
   function shareWhatsApp(){
     const txt = `Mein Feminity Beautymatch: ${result.lookName} (${result.matchType.label}). Schau es dir an: https://ruetherkoeln.github.io/feminity-app/`;
@@ -1427,7 +1490,7 @@ function BeautyMatch({ setView, auth }){
   }
 
   // Quiz-Ansicht
-  if(!done){
+  if(phase==='quiz'){
     const isMulti = !!currentQ.multi;
     const selected = isMulti ? (answers[currentQ.id]||[]) : answers[currentQ.id];
 
@@ -1483,9 +1546,108 @@ function BeautyMatch({ setView, auth }){
           <div className="flex justify-between items-center mt-6 text-sm gap-3">
             <button onClick={()=>step>0&&setStep(step-1)} disabled={step===0} className="text-ink-600 hover:underline disabled:opacity-30 disabled:no-underline">← Zurück</button>
             {isMulti
-              ? <Button size="sm" onClick={nextMulti} disabled={!selected || selected.length===0}>{step+1>=totalQuestions?'Match anzeigen':'Weiter'}</Button>
+              ? <Button size="sm" onClick={nextMulti} disabled={!selected || selected.length===0}>{step+1>=totalQuestions?'Weiter zum Look-Match':'Weiter'}</Button>
               : null
             }
+          </div>
+        </Card>
+      </Section>
+    );
+  }
+
+  // Swipe-Ansicht
+  if(phase==='swipe'){
+    const look = STYLE_LOOKS[swipeIdx];
+    const swipeProgress = Math.round((swipeIdx / STYLE_LOOKS.length) * 100);
+    return (
+      <Section className="py-12 max-w-3xl mx-auto">
+        <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Look-Match</div>
+        <h1 className="font-display text-5xl text-ink-900 mt-2">Welcher Look spricht dich an?</h1>
+        <p className="text-ink-700 mt-3 text-sm">Swipe durch unsere Stilrichtungen — wir lernen dabei deinen Geschmack besser kennen.</p>
+
+        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-ink-600 mt-8">
+          <span>Look {swipeIdx+1} / {STYLE_LOOKS.length}</span>
+          <button onClick={skipSwipe} className="underline text-ink-900">Überspringen</button>
+        </div>
+        <div className="h-1.5 bg-champagne-100 rounded-full mt-2 overflow-hidden">
+          <div className="h-full bg-rose-400 transition-all duration-300" style={{width:`${swipeProgress}%`}}></div>
+        </div>
+
+        <Card className="mt-6 overflow-hidden">
+          <div className={`relative aspect-[4/5] sm:aspect-[16/9] overflow-hidden ${look.photo?'':`bg-gradient-to-br ${look.bg}`}`}>
+            {look.photo && <img src={look.photo} alt={look.name} className="w-full h-full object-cover" />}
+            <div className={`absolute inset-0 ${look.dark?'bg-gradient-to-t from-ink-900/80 via-ink-900/30 to-transparent':'bg-gradient-to-t from-ink-900/60 via-transparent to-transparent'}`}></div>
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-champagne-50">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-rose-300">Look {swipeIdx+1}</div>
+              <h3 className="font-display text-4xl mt-1">{look.name}</h3>
+              <p className="text-sm mt-2 max-w-md">{look.desc}</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {look.tags.map(t=>(
+                  <span key={t} className="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-champagne-50/15 backdrop-blur border border-champagne-50/30">{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 p-4">
+            <button onClick={()=>reactToLook('pass')} className="py-3 rounded-2xl border border-champagne-200 hover:bg-champagne-100 flex flex-col items-center gap-1 transition">
+              <span className="text-2xl">✕</span>
+              <span className="text-xs text-ink-700">Nope</span>
+            </button>
+            <button onClick={()=>reactToLook('like')} className="py-3 rounded-2xl bg-rose-100 border border-rose-200 hover:bg-rose-200 flex flex-col items-center gap-1 transition">
+              <span className="text-2xl">❤️</span>
+              <span className="text-xs text-rose-800">Gefällt mir</span>
+            </button>
+            <button onClick={()=>reactToLook('love')} className="py-3 rounded-2xl bg-ink-900 text-champagne-50 hover:bg-ink-800 flex flex-col items-center gap-1 transition">
+              <span className="text-2xl">💎</span>
+              <span className="text-xs">Mehr davon!</span>
+            </button>
+          </div>
+          <div className="px-4 pb-4">
+            <button onClick={()=>{ if(swipeIdx>0) setSwipeIdx(swipeIdx-1); }} disabled={swipeIdx===0} className="text-xs text-ink-600 hover:underline disabled:opacity-30 disabled:no-underline">← Zurück zum vorherigen Look</button>
+          </div>
+        </Card>
+      </Section>
+    );
+  }
+
+  // Foto-Upload-Ansicht
+  if(phase==='photo'){
+    return (
+      <Section className="py-12 max-w-2xl mx-auto">
+        <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Inspiration</div>
+        <h1 className="font-display text-5xl text-ink-900 mt-2">Inspirations-Foto (optional)</h1>
+        <p className="text-ink-700 mt-4 text-sm">
+          Lade ein Foto hoch — z. B. einen Pinterest-Screenshot, ein Instagram-Bild oder ein Selfie.
+          Deine Stylistin sieht es im Vorfeld als Inspiration.
+        </p>
+        <div className="mt-3 p-3 rounded-2xl bg-champagne-50 text-xs text-ink-700">
+          <strong>Datenschutz:</strong> Wir analysieren keine biometrischen Daten. Das Foto wird nur lokal mit deinem Match gespeichert und ist ausschließlich für deine Stylistin sichtbar.
+        </div>
+
+        <Card className="p-8 mt-6">
+          {!inspirationPhoto && (
+            <div onClick={()=>photoInputRef.current?.click()}
+              className="aspect-[4/3] border-2 border-dashed border-champagne-300 rounded-2xl grid place-items-center cursor-pointer hover:bg-champagne-50 transition text-center p-8">
+              <div>
+                <div className="text-4xl">📷</div>
+                <div className="font-medium mt-3">Foto auswählen</div>
+                <div className="text-sm text-ink-600 mt-1">JPG/PNG · max. 1,5 MB</div>
+              </div>
+            </div>
+          )}
+          {inspirationPhoto && (
+            <div>
+              <img src={inspirationPhoto} alt="Inspiration" className="w-full max-h-96 object-contain rounded-2xl bg-champagne-50" />
+              <button onClick={()=>{ setInspirationPhoto(null); }} className="text-sm text-ink-600 underline mt-3">Anderes Foto wählen</button>
+            </div>
+          )}
+          <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          {photoError && <div className="text-sm text-rose-600 mt-2">{photoError}</div>}
+
+          <div className="flex justify-between items-center mt-6">
+            <Button variant="ghost" onClick={()=>finishToResult()}>Überspringen</Button>
+            <Button onClick={()=>finishToResult()}>{inspirationPhoto?'Match anzeigen':'Ohne Foto fortfahren'}</Button>
           </div>
         </Card>
       </Section>
@@ -1518,7 +1680,34 @@ function BeautyMatch({ setView, auth }){
         </Card>
       )}
 
-      <div className="grid md:grid-cols-3 gap-5 mt-8">
+      {/* Style-Profil + Inspirations-Foto */}
+      {(r.topStyleTags.length > 0 || r.inspirationPhoto) && (
+        <div className="grid md:grid-cols-3 gap-5 mt-6">
+          {r.topStyleTags.length > 0 && (
+            <Card className={`p-6 ${r.inspirationPhoto?'md:col-span-2':'md:col-span-3'}`}>
+              <div className="text-xs uppercase tracking-widest text-rose-500">Dein Stil-Profil</div>
+              <h3 className="font-display text-2xl mt-2">Du bevorzugst</h3>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {r.topStyleTags.map(t=>(
+                  <span key={t} className="px-4 py-2 rounded-full bg-ink-900 text-champagne-50 text-sm">{t}</span>
+                ))}
+              </div>
+              <div className="text-xs text-ink-600 mt-4 italic">Basierend auf deinen Look-Match-Reaktionen.</div>
+            </Card>
+          )}
+          {r.inspirationPhoto && (
+            <Card className="overflow-hidden">
+              <img src={r.inspirationPhoto} alt="Inspiration" className="w-full aspect-square object-cover" />
+              <div className="p-4">
+                <div className="text-xs uppercase tracking-widest text-rose-500">Inspiration</div>
+                <div className="text-sm text-ink-700 mt-1">Wird der Stylistin im Termin gezeigt.</div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-3 gap-5 mt-5">
         {/* Treatments */}
         <Card className="p-6 md:col-span-2">
           <h3 className="font-display text-2xl">Empfohlene Leistungen</h3>
