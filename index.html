@@ -229,6 +229,67 @@ const TIER_THRESHOLDS = [
   { tier:'SILVER',   points:500,  label:'Silver' },
   { tier:'BRONZE',   points:0,    label:'Bronze' },
 ];
+// Selfie-Analyse: pixel-based skin tone detection (kein ML, kein Backend)
+function analyzeSelfie(dataURL){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const W = 240, H = 240;
+        canvas.width = W; canvas.height = H;
+        const minDim = Math.min(img.width, img.height);
+        const sx = Math.max(0, (img.width - minDim) / 2);
+        const sy = Math.max(0, (img.height - minDim) / 4); // upper portion = face
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, W, H);
+        // Sample 60x60 center region (avoiding edges/hair)
+        const region = ctx.getImageData(W/2 - 30, H/2 - 30, 60, 60).data;
+        // Filter "skin-like" pixels: skip very dark, very bright, or low saturation
+        let r=0, g=0, b=0, n=0;
+        for(let i=0; i<region.length; i+=4){
+          const pr = region[i], pg = region[i+1], pb = region[i+2];
+          const max = Math.max(pr,pg,pb), min = Math.min(pr,pg,pb);
+          if(max < 30 || max > 245) continue; // too dark or blown out
+          // crude skin heuristic: red > blue, red > green-ish
+          if(pr <= pb || pr < pg-10) continue;
+          r += pr; g += pg; b += pb; n++;
+        }
+        if(n < 50){ // not enough skin pixels — sample whole region
+          for(let i=0; i<region.length; i+=4){ r += region[i]; g += region[i+1]; b += region[i+2]; n++; }
+        }
+        r = r/n; g = g/n; b = b/n;
+        const luminance = 0.299*r + 0.587*g + 0.114*b;
+        // Warm/neutral/cool: red-blue diff
+        const rb = r - b;
+        let undertone = 'neutral';
+        if(rb > 30) undertone = 'warm';
+        else if(rb < 8) undertone = 'cool';
+        let depth = 'mittel';
+        if(luminance > 195) depth = 'hell';
+        else if(luminance < 110) depth = 'tief';
+        const hex = '#' + [Math.round(r), Math.round(g), Math.round(b)]
+          .map(c=>Math.max(0,Math.min(255,c)).toString(16).padStart(2,'0')).join('');
+        // Rec colors based on undertone
+        const colorRec = undertone==='warm'
+          ? ['Honig-Blond','Caramel','Schoko-Brown','Kupfer','warmes Rot']
+          : undertone==='cool'
+          ? ['Asch-Blond','Platinum','Cool Brown','Kühles Rot','Mahagoni']
+          : ['Beige-Blond','Mocca','Natural Brown','Soft Auburn','Warm Bronze'];
+        resolve({
+          undertone, depth, hex,
+          colorRec,
+          confidence: Math.min(95, Math.round(50 + n*0.3)),
+        });
+      } catch(e){
+        resolve(null);
+      }
+    };
+    img.onerror = ()=>resolve(null);
+    img.src = dataURL;
+  });
+}
+
 function tierFromPoints(p){
   return TIER_THRESHOLDS.find(t => p >= t.points).tier;
 }
@@ -1379,6 +1440,7 @@ function computeMatch(a, opts={}){
     answers: a,
     topStyleTags,
     inspirationPhoto: opts.inspirationPhoto || null,
+    selfieAnalysis: opts.selfieAnalysis || null,
   };
 }
 
@@ -1393,7 +1455,12 @@ function BeautyMatch({ setView, auth }){
   const [swipeReactions, setSwipeReactions] = useState({});
   const [inspirationPhoto, setInspirationPhoto] = useState(null);
   const [photoError, setPhotoError] = useState('');
+  const [selfieAnalysis, setSelfieAnalysis] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [cameraOn, setCameraOn] = useState(false);
   const photoInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
 
   // Load saved match on mount
   useEffect(()=>{
@@ -1408,7 +1475,7 @@ function BeautyMatch({ setView, auth }){
   const sectionIdx = ['Look','Hair','Beauty','Rahmen'].indexOf(currentQ?.section);
   const progress = Math.round(((step) / totalQuestions) * 100);
 
-  const result = useMemo(()=> phase==='result' ? computeMatch(answers, { swipeReactions, inspirationPhoto }) : null, [phase, answers, swipeReactions, inspirationPhoto]);
+  const result = useMemo(()=> phase==='result' ? computeMatch(answers, { swipeReactions, inspirationPhoto, selfieAnalysis }) : null, [phase, answers, swipeReactions, inspirationPhoto]);
 
   function selectSingle(opt){
     const next = { ...answers, [currentQ.id]: opt };
@@ -1441,21 +1508,59 @@ function BeautyMatch({ setView, auth }){
     if(!file.type.startsWith('image/')){ setPhotoError('Bitte ein Bild auswählen.'); return; }
     if(file.size > 1_500_000){ setPhotoError('Maximal 1,5 MB. Bitte komprimieren.'); return; }
     const reader = new FileReader();
-    reader.onload = ()=>{ setInspirationPhoto(reader.result); setPhotoError(''); };
+    reader.onload = ()=>{ setInspirationPhoto(reader.result); setSelfieAnalysis(null); setPhotoError(''); };
     reader.readAsDataURL(file);
   }
+  async function startCamera(){
+    setPhotoError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', width:{ideal:720} }, audio:false });
+      cameraStreamRef.current = stream;
+      setCameraOn(true);
+      setTimeout(()=>{ if(videoRef.current){ videoRef.current.srcObject = stream; videoRef.current.play(); } }, 50);
+    } catch(e){
+      setPhotoError('Kamera nicht verfügbar oder Berechtigung verweigert.');
+    }
+  }
+  function stopCamera(){
+    cameraStreamRef.current?.getTracks().forEach(t=>t.stop());
+    cameraStreamRef.current = null;
+    setCameraOn(false);
+  }
+  function captureFromCamera(){
+    const v = videoRef.current;
+    if(!v || !v.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1); // mirror selfie
+    ctx.drawImage(v, 0, 0);
+    const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+    setInspirationPhoto(dataURL);
+    setSelfieAnalysis(null);
+    stopCamera();
+  }
+  async function runAnalysis(){
+    if(!inspirationPhoto) return;
+    setAnalyzing(true);
+    const r = await analyzeSelfie(inspirationPhoto);
+    await new Promise(res=>setTimeout(res, 800)); // small delay for UX
+    setAnalyzing(false);
+    setSelfieAnalysis(r);
+  }
+  useEffect(()=>{ return ()=>stopCamera(); }, []);
   function finishToResult(){
     finalize();
   }
   function finalize(){
     setPhase('result');
     try {
-      const m = computeMatch(answers, { swipeReactions, inspirationPhoto });
-      localStorage.setItem('feminity_match', JSON.stringify({ answers, swipeReactions, inspirationPhoto, lookName:m.lookName, ts:Date.now() }));
-      setSavedMatch({ answers, swipeReactions, inspirationPhoto, lookName:m.lookName, ts:Date.now() });
+      const m = computeMatch(answers, { swipeReactions, inspirationPhoto, selfieAnalysis });
+      localStorage.setItem('feminity_match', JSON.stringify({ answers, swipeReactions, inspirationPhoto, selfieAnalysis, lookName:m.lookName, ts:Date.now() }));
+      setSavedMatch({ answers, swipeReactions, inspirationPhoto, selfieAnalysis, lookName:m.lookName, ts:Date.now() });
     } catch {}
     if(auth?.user && pointsEarned === 0){
-      const m = computeMatch(answers, { swipeReactions, inspirationPhoto });
+      const m = computeMatch(answers, { swipeReactions, inspirationPhoto, selfieAnalysis });
       auth.updateUser({
         loyaltyPoints: auth.user.loyaltyPoints + 50,
         completedMatches: (auth.user.completedMatches || 0) + 1,
@@ -1611,44 +1716,122 @@ function BeautyMatch({ setView, auth }){
     );
   }
 
-  // Foto-Upload-Ansicht
+  // Selfie-Analyse-Ansicht
   if(phase==='photo'){
     return (
       <Section className="py-12 max-w-2xl mx-auto">
-        <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Inspiration</div>
-        <h1 className="font-display text-5xl text-ink-900 mt-2">Inspirations-Foto (optional)</h1>
+        <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Selfie-Analyse</div>
+        <h1 className="font-display text-5xl text-ink-900 mt-2">Dein Look-Spiegel</h1>
         <p className="text-ink-700 mt-4 text-sm">
-          Lade ein Foto hoch — z. B. einen Pinterest-Screenshot, ein Instagram-Bild oder ein Selfie.
-          Deine Stylistin sieht es im Vorfeld als Inspiration.
+          Mache ein Selfie oder lade eines hoch — wir erkennen deinen Hautton und schlagen passende Farben vor. Das Bild geht auch als Inspiration an deine Stylistin.
         </p>
         <div className="mt-3 p-3 rounded-2xl bg-champagne-50 text-xs text-ink-700">
-          <strong>Datenschutz:</strong> Wir analysieren keine biometrischen Daten. Das Foto wird nur lokal mit deinem Match gespeichert und ist ausschließlich für deine Stylistin sichtbar.
+          <strong>Datenschutz:</strong> Die Analyse erfolgt <strong>vollständig lokal in deinem Browser</strong>. Es werden keine biometrischen Daten verarbeitet oder versendet — wir messen nur den durchschnittlichen Farbton deiner Hautregion. Du kannst das Foto jederzeit löschen.
         </div>
 
-        <Card className="p-8 mt-6">
-          {!inspirationPhoto && (
-            <div onClick={()=>photoInputRef.current?.click()}
-              className="aspect-[4/3] border-2 border-dashed border-champagne-300 rounded-2xl grid place-items-center cursor-pointer hover:bg-champagne-50 transition text-center p-8">
-              <div>
-                <div className="text-4xl">📷</div>
-                <div className="font-medium mt-3">Foto auswählen</div>
-                <div className="text-sm text-ink-600 mt-1">JPG/PNG · max. 1,5 MB</div>
+        <Card className="p-6 mt-6">
+          {/* Kein Foto + keine Kamera */}
+          {!inspirationPhoto && !cameraOn && (
+            <div className="space-y-3">
+              <div onClick={()=>photoInputRef.current?.click()}
+                className="aspect-[4/3] border-2 border-dashed border-champagne-300 rounded-2xl grid place-items-center cursor-pointer hover:bg-champagne-50 transition text-center p-8">
+                <div>
+                  <div className="text-4xl">📁</div>
+                  <div className="font-medium mt-3">Foto hochladen</div>
+                  <div className="text-sm text-ink-600 mt-1">JPG/PNG · max. 1,5 MB</div>
+                </div>
+              </div>
+              <Button className="w-full" variant="soft" onClick={startCamera}>📷 Mit Kamera aufnehmen</Button>
+            </div>
+          )}
+
+          {/* Kamera live */}
+          {cameraOn && (
+            <div>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-ink-900">
+                <video ref={videoRef} className="w-full h-full object-cover" style={{transform:'scaleX(-1)'}} playsInline muted></video>
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <Button variant="ghost" onClick={stopCamera}>Abbrechen</Button>
+                <Button onClick={captureFromCamera}>Aufnehmen</Button>
               </div>
             </div>
           )}
-          {inspirationPhoto && (
+
+          {/* Foto da, noch keine Analyse */}
+          {inspirationPhoto && !selfieAnalysis && !analyzing && (
             <div>
-              <img src={inspirationPhoto} alt="Inspiration" className="w-full max-h-96 object-contain rounded-2xl bg-champagne-50" />
-              <button onClick={()=>{ setInspirationPhoto(null); }} className="text-sm text-ink-600 underline mt-3">Anderes Foto wählen</button>
+              <img src={inspirationPhoto} alt="Selfie" className="w-full max-h-96 object-contain rounded-2xl bg-champagne-50" />
+              <div className="flex flex-wrap justify-between items-center mt-4 gap-3">
+                <button onClick={()=>{ setInspirationPhoto(null); setSelfieAnalysis(null); }} className="text-sm text-ink-600 underline">Anderes Foto</button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={finishToResult}>Ohne Analyse fortfahren</Button>
+                  <Button onClick={runAnalysis}>Analyse starten</Button>
+                </div>
+              </div>
             </div>
           )}
-          <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-          {photoError && <div className="text-sm text-rose-600 mt-2">{photoError}</div>}
 
-          <div className="flex justify-between items-center mt-6">
-            <Button variant="ghost" onClick={()=>finishToResult()}>Überspringen</Button>
-            <Button onClick={()=>finishToResult()}>{inspirationPhoto?'Match anzeigen':'Ohne Foto fortfahren'}</Button>
-          </div>
+          {/* Analyse läuft */}
+          {analyzing && (
+            <div className="aspect-[4/3] grid place-items-center">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto rounded-full border-4 border-rose-400 border-t-transparent animate-spin"></div>
+                <div className="mt-4 font-medium">Analyse läuft…</div>
+                <div className="text-xs text-ink-600 mt-1">Hauttoneralyse direkt im Browser</div>
+              </div>
+            </div>
+          )}
+
+          {/* Analyse-Ergebnis */}
+          {selfieAnalysis && (
+            <div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <img src={inspirationPhoto} alt="Selfie" className="w-full aspect-square object-cover rounded-2xl bg-champagne-50" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full ring-2 ring-champagne-200" style={{backgroundColor: selfieAnalysis.hex}}></div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-widest text-ink-600">Erkannter Hautton</div>
+                      <div className="font-medium">{selfieAnalysis.hex.toUpperCase()}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-2xl bg-champagne-50">
+                      <div className="text-[10px] uppercase tracking-widest text-ink-600">Untertone</div>
+                      <div className="font-display text-xl mt-1 capitalize">{selfieAnalysis.undertone}</div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-champagne-50">
+                      <div className="text-[10px] uppercase tracking-widest text-ink-600">Tiefe</div>
+                      <div className="font-display text-xl mt-1 capitalize">{selfieAnalysis.depth}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-ink-600">Vertrauen: {selfieAnalysis.confidence}%</div>
+                </div>
+              </div>
+              <div className="mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200">
+                <div className="text-xs uppercase tracking-widest text-rose-700">Empfohlene Haarfarben</div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selfieAnalysis.colorRec.map(c=>(
+                    <span key={c} className="px-3 py-1 rounded-full bg-white text-rose-800 text-sm">{c}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between items-center mt-5">
+                <button onClick={()=>{ setInspirationPhoto(null); setSelfieAnalysis(null); }} className="text-sm text-ink-600 underline">Anderes Foto</button>
+                <Button onClick={finishToResult}>Match anzeigen</Button>
+              </div>
+            </div>
+          )}
+
+          <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          {photoError && <div className="text-sm text-rose-600 mt-3">{photoError}</div>}
+
+          {!inspirationPhoto && !cameraOn && (
+            <div className="flex justify-end mt-4">
+              <Button variant="ghost" onClick={finishToResult}>Überspringen</Button>
+            </div>
+          )}
         </Card>
       </Section>
     );
@@ -1699,8 +1882,18 @@ function BeautyMatch({ setView, auth }){
             <Card className="overflow-hidden">
               <img src={r.inspirationPhoto} alt="Inspiration" className="w-full aspect-square object-cover" />
               <div className="p-4">
-                <div className="text-xs uppercase tracking-widest text-rose-500">Inspiration</div>
-                <div className="text-sm text-ink-700 mt-1">Wird der Stylistin im Termin gezeigt.</div>
+                <div className="text-xs uppercase tracking-widest text-rose-500">{r.selfieAnalysis?'Selfie-Analyse':'Inspiration'}</div>
+                {r.selfieAnalysis ? (
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full ring-1 ring-champagne-200" style={{backgroundColor: r.selfieAnalysis.hex}}></div>
+                      <span className="text-ink-700"><strong className="capitalize">{r.selfieAnalysis.undertone}</strong> · {r.selfieAnalysis.depth}</span>
+                    </div>
+                    <div className="text-xs text-ink-600 mt-1">{r.selfieAnalysis.colorRec.slice(0,3).join(' · ')}</div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-ink-700 mt-1">Wird der Stylistin im Termin gezeigt.</div>
+                )}
               </div>
             </Card>
           )}
