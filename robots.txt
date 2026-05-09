@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ruetherkoeln.github.io/feminity-app/sitemap.xml
