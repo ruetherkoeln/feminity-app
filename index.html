@@ -2196,7 +2196,9 @@ function BeautyPassportCard({ u, tierLabel }){
             <div className="rounded-full p-1.5" style={{background:goldGrad}}>
               <div className="rounded-full p-1 bg-champagne-50">
                 <div className="w-44 h-44 rounded-full overflow-hidden">
-                  <img src="assets/Jule_Cover.jpg" alt="Portrait" className="w-full h-full object-cover" style={{objectPosition:'center 20%'}} />
+                  {u.photo
+                    ? <img src={u.photo} alt={u.name} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-gradient-to-br from-rose-200 via-champagne-200 to-champagne-400 grid place-items-center font-display text-7xl" style={{color:'#7e5036'}}>{u.name[0]?.toUpperCase()}</div>}
                 </div>
               </div>
             </div>
@@ -2294,6 +2296,10 @@ function AccountDashboard({ setView, auth }){
   if(!u) return null; // App routes to login when no user
   const photoInputRef = useRef(null);
   const [photoError, setPhotoError] = useState('');
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [photoCameraOn, setPhotoCameraOn] = useState(false);
+  const photoVideoRef = useRef(null);
+  const photoCameraStreamRef = useRef(null);
   const next = nextTier(u.loyaltyPoints);
   const tierLabel = TIER_THRESHOLDS.find(t=>t.tier===u.tier)?.label || u.tier;
   const bdayStatus = birthdayBonusStatus(u.birthday);
@@ -2315,27 +2321,60 @@ function AccountDashboard({ setView, auth }){
     reader.onload = ()=>{
       auth.updateUser({ photo: reader.result });
       setPhotoError('');
+      setShowPhotoPicker(false);
     };
     reader.readAsDataURL(file);
   }
-  function removePhoto(){ auth.updateUser({ photo: '' }); }
+  function removePhoto(){ auth.updateUser({ photo: '' }); setShowPhotoPicker(false); }
+  async function startPhotoCamera(){
+    setPhotoError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', width:{ideal:720} }, audio:false });
+      photoCameraStreamRef.current = stream;
+      setPhotoCameraOn(true);
+      setTimeout(()=>{ if(photoVideoRef.current){ photoVideoRef.current.srcObject = stream; photoVideoRef.current.play(); } }, 50);
+    } catch(e){
+      setPhotoError('Kamera nicht verfügbar oder Berechtigung verweigert.');
+    }
+  }
+  function stopPhotoCamera(){
+    photoCameraStreamRef.current?.getTracks().forEach(t=>t.stop());
+    photoCameraStreamRef.current = null;
+    setPhotoCameraOn(false);
+  }
+  function capturePhotoFromCamera(){
+    const v = photoVideoRef.current;
+    if(!v || !v.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    const size = Math.min(v.videoWidth, v.videoHeight);
+    canvas.width = canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+    const sx = (v.videoWidth - size) / 2;
+    const sy = (v.videoHeight - size) / 2;
+    ctx.drawImage(v, sx, sy, size, size, 0, 0, 480, 480);
+    const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+    auth.updateUser({ photo: dataURL });
+    stopPhotoCamera();
+    setShowPhotoPicker(false);
+  }
+  useEffect(()=>{ return ()=>stopPhotoCamera(); }, []);
 
   return (
     <Section className="py-12">
       {/* Profil-Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <div className="relative">
+          <button onClick={()=>setShowPhotoPicker(true)} className="relative group" title="Profilfoto hochladen oder ändern">
             {u.photo
-              ? <img src={u.photo} alt={u.name} className="w-20 h-20 rounded-full object-cover ring-2 ring-champagne-200" />
-              : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-200 to-champagne-300 grid place-items-center font-display text-3xl text-ink-700">{u.name[0]?.toUpperCase()}</div>}
-            <button onClick={()=>photoInputRef.current?.click()} className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-ink-900 text-champagne-50 grid place-items-center text-sm hover:bg-ink-800" title="Foto hochladen">📷</button>
-            <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-          </div>
+              ? <img src={u.photo} alt={u.name} className="w-20 h-20 rounded-full object-cover ring-2 ring-champagne-200 group-hover:ring-rose-400 transition" />
+              : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-200 to-champagne-300 grid place-items-center font-display text-3xl text-ink-700 group-hover:from-rose-300 transition">{u.name[0]?.toUpperCase()}</div>}
+            <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-ink-900 text-champagne-50 grid place-items-center text-sm group-hover:bg-rose-500 transition">📷</span>
+          </button>
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-ink-600">Mein Konto</div>
             <h1 className="font-display text-4xl md:text-5xl text-ink-900 mt-1">Willkommen, {u.name.split(' ')[0]}</h1>
-            {u.photo && <button onClick={removePhoto} className="text-xs text-ink-600 underline mt-1">Foto entfernen</button>}
+            <button onClick={()=>setShowPhotoPicker(true)} className="text-xs text-ink-700 underline mt-1">{u.photo ? 'Profilfoto ändern' : 'Profilfoto hochladen'}</button>
           </div>
         </div>
         <div className="flex gap-2 items-center">
@@ -2345,6 +2384,50 @@ function AccountDashboard({ setView, auth }){
         </div>
       </div>
       {photoError && <div className="text-sm text-rose-600 mt-3">{photoError}</div>}
+
+      {/* Profilfoto-Picker Modal */}
+      {showPhotoPicker && (
+        <div className="fixed inset-0 z-50 grid place-items-center p-4" style={{background:'rgba(26,20,16,0.6)'}}>
+          <Card className="p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.3em] text-rose-500">Profilfoto</div>
+                <h3 className="font-display text-2xl text-ink-900 mt-1">{u.photo ? 'Foto ändern' : 'Foto hochladen'}</h3>
+              </div>
+              <button onClick={()=>{ setShowPhotoPicker(false); stopPhotoCamera(); }} className="w-9 h-9 grid place-items-center rounded-full hover:bg-champagne-100 text-xl">×</button>
+            </div>
+
+            {!photoCameraOn && (
+              <div className="space-y-3">
+                {u.photo && (
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-champagne-50">
+                    <img src={u.photo} alt="aktuell" className="w-14 h-14 rounded-full object-cover" />
+                    <div className="text-sm text-ink-700 flex-1">Aktuelles Foto</div>
+                  </div>
+                )}
+                <Button className="w-full" onClick={()=>photoInputRef.current?.click()}>📁 Foto aus Galerie wählen</Button>
+                <Button className="w-full" variant="soft" onClick={startPhotoCamera}>📷 Mit Kamera aufnehmen</Button>
+                {u.photo && <Button className="w-full" variant="ghost" onClick={removePhoto}>Foto entfernen</Button>}
+                <div className="text-xs text-ink-600 text-center mt-2">JPG / PNG · max. 2 MB · nur lokal gespeichert</div>
+              </div>
+            )}
+
+            {photoCameraOn && (
+              <div>
+                <div className="aspect-square rounded-2xl overflow-hidden bg-ink-900">
+                  <video ref={photoVideoRef} className="w-full h-full object-cover" style={{transform:'scaleX(-1)'}} playsInline muted></video>
+                </div>
+                <div className="flex justify-between mt-4 gap-2">
+                  <Button variant="ghost" onClick={stopPhotoCamera}>Abbrechen</Button>
+                  <Button onClick={capturePhotoFromCamera}>Aufnehmen</Button>
+                </div>
+              </div>
+            )}
+
+            <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          </Card>
+        </div>
+      )}
 
       {/* Tier-Progress */}
       <Card className="p-6 mt-6 bg-ink-900 text-champagne-50 border-ink-900">
