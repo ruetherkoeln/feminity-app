@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="goldBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f3d27a"/>
+      <stop offset="50%" stop-color="#c89a3a"/>
+      <stop offset="100%" stop-color="#a37520"/>
+    </linearGradient>
+    <linearGradient id="fGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbf8f3"/>
+      <stop offset="100%" stop-color="#f5ede0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#goldBg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="84" fill="none" stroke="#fbf8f3" stroke-width="2" opacity="0.35"/>
+  <text x="50%" y="56%" text-anchor="middle"
+        font-family="'Cormorant Garamond', 'Times New Roman', serif"
+        font-style="italic" font-weight="500"
+        font-size="380" fill="url(#fGrad)">F</text>
+  <text x="50%" y="78%" text-anchor="middle"
+        font-family="'Cormorant Garamond', serif"
+        font-size="32" letter-spacing="6" fill="#fbf8f3" opacity="0.9">FEMINITY</text>
+</svg>
