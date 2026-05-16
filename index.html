@@ -84,14 +84,14 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>
   tailwind.config = {
     theme: {
       extend: {
         fontFamily: {
-          serif: ['"Cormorant Garamond"', 'serif'],
-          sans: ['Inter', 'sans-serif'],
+          serif: ['Montserrat', 'sans-serif'],
+          sans: ['Montserrat', 'sans-serif'],
         },
         colors: {
           champagne: { 50:'#fbf8f3', 100:'#f5ede0', 200:'#ead7bf', 300:'#dcbb95', 400:'#cb9a6a', 500:'#b87f4f', 600:'#9c6741', 700:'#7e5036', 800:'#65412e', 900:'#4d3325' },
@@ -103,8 +103,8 @@
   }
 </script>
 <style>
-  body { font-family: 'Inter', sans-serif; background: #fbf8f3; color: #2b231d; }
-  .font-display { font-family: 'Cormorant Garamond', serif; letter-spacing: -0.01em; }
+  body { font-family: 'Montserrat', sans-serif; background: #fbf8f3; color: #2b231d; }
+  .font-display { font-family: 'Montserrat', sans-serif; letter-spacing: -0.01em; }
   .grain { background-image: radial-gradient(circle at 20% 10%, rgba(203,154,106,.08), transparent 40%), radial-gradient(circle at 80% 80%, rgba(214,130,109,.06), transparent 50%); }
   .scroll-hidden::-webkit-scrollbar { display: none; }
   .scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
@@ -804,8 +804,8 @@ function Home({ setView }){
           {/* Titel + Buttons auf Brusthöhe (~50–55% vom oberen Rand) */}
           <div className="absolute left-0 right-0 px-6 max-w-md mx-auto" style={{top:'52%'}}>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-[0.4em] text-rose-300">Willkommen bei</div>
-              <h1 className="font-display text-5xl text-champagne-50 mt-1 leading-[1.05] drop-shadow-lg">Die Feminity-App</h1>
+              <div className="text-[10px] uppercase tracking-[0.4em] text-rose-300">Willkommen bei der</div>
+              <h1 className="text-5xl text-champagne-50 mt-1 leading-[1.05] drop-shadow-lg font-semibold" style={{fontFamily:"'Montserrat', sans-serif"}}>Feminity-App</h1>
             </div>
             <div className="grid gap-3 mt-6">
               <a href="https://www.treatwell.de/ort/feminity-by-jule-oberkassel/" target="_blank" rel="noopener"
@@ -862,6 +862,14 @@ function Home({ setView }){
               <div><div className="font-display text-3xl text-ink-900">15+</div>Jahre Erfahrung</div>
               <div><div className="font-display text-3xl text-ink-900">4.9</div>Google Bewertung</div>
               <div><div className="font-display text-3xl text-ink-900">2k+</div>Kundinnen</div>
+            </div>
+            {/* Partner-Logos */}
+            <div className="mt-10 pt-6 border-t border-champagne-200">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-ink-600 mb-3">Wir arbeiten mit</div>
+              <div className="flex items-center gap-7">
+                <img src="assets/Kerastase.png" alt="Kérastase" className="h-7 w-auto" />
+                <img src="assets/hh-simonsen.png" alt="hh simonsen" className="h-9 w-auto" />
+              </div>
             </div>
           </div>
           <div className="relative">
