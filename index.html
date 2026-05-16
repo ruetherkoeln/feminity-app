@@ -269,7 +269,7 @@ const Badge = ({ children, tone='neutral' }) => {
     warn:'bg-amber-50 text-amber-800 border-amber-200',
     info:'bg-sky-50 text-sky-800 border-sky-200',
   };
-  return <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${tones[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center justify-center text-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${tones[tone]}`}>{children}</span>;
 };
 
 const Button = ({ children, variant='primary', size='md', className='', ...rest }) => {
